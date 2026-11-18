@@ -1,4 +1,4 @@
-import type { Entry, EntryChanges, NewEntry, WeekView } from '../shared/types.ts';
+import type { Entry, EntryChanges, NewEntry, NewRoutine, Routine, WeekView } from '../shared/types.ts';
 
 const TOKEN_KEY = 'my-week-token';
 
@@ -39,4 +39,7 @@ export const api = {
   createEntry: (entry: NewEntry) => request<Entry>('POST', '/api/entries', entry),
   updateEntry: (id: number, changes: EntryChanges) => request<Entry>('PATCH', `/api/entries/${id}`, changes),
   deleteEntry: (id: number) => request<void>('DELETE', `/api/entries/${id}`),
+  routines: () => request<Routine[]>('GET', '/api/routines'),
+  createRoutine: (routine: NewRoutine) => request<Routine>('POST', '/api/routines', routine),
+  deleteRoutine: (id: number) => request<void>('DELETE', `/api/routines/${id}`),
 };

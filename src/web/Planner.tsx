@@ -146,6 +146,7 @@ export function Planner({ onAuthError }: { onAuthError: () => void }) {
           <button type="button" className="btn" aria-label="Previous week" onClick={() => setMonday(addDays(monday, -7))}>←</button>
           <button type="button" className="btn" onClick={() => setMonday(mondayOf(browserNow()))}>Today</button>
           <button type="button" className="btn" aria-label="Next week" onClick={() => setMonday(addDays(monday, 7))}>→</button>
+          <a className="btn" href="/routines">Routines</a>
         </nav>
       </header>
       {message && (

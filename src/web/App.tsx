@@ -1,6 +1,13 @@
 import { useState } from 'react';
+import type { ComponentType } from 'react';
 import { getToken, setToken } from './api.ts';
 import { Planner } from './Planner.tsx';
+import { RoutinesPage } from './RoutinesPage.tsx';
+
+/** One page per path. Pages link with plain <a href> loads, so no router library is needed. */
+const PAGES: Record<string, ComponentType<{ onAuthError: () => void }>> = {
+  '/routines': RoutinesPage,
+};
 
 export function App() {
   const [hasToken, setHasToken] = useState(() => Boolean(getToken()));
@@ -14,7 +21,8 @@ export function App() {
       />
     );
   }
-  return <Planner onAuthError={() => setHasToken(false)} />;
+  const Page = PAGES[window.location.pathname] ?? Planner;
+  return <Page onAuthError={() => setHasToken(false)} />;
 }
 
 function TokenScreen({ onSave }: { onSave: (token: string) => void }) {

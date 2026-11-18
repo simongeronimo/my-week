@@ -116,3 +116,12 @@ label { font-size: 12px; font-weight: 600; }
 .token-screen { min-height: 100dvh; display: grid; place-items: center; }
 .token-screen form { width: min(360px, calc(100vw - 32px)); border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper); }
 .token-screen h1 { margin: 0 0 8px; font-size: 20px; }
+
+/* Routines page */
+a.btn { display: inline-flex; align-items: center; color: inherit; text-decoration: none; }
+fieldset { margin: 0; padding: 0; border: 0; }
+legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
+.page { max-width: 640px; margin: 0 auto; padding: 16px 24px 40px; display: flex; flex-direction: column; gap: 16px; }
+.routine-row { align-items: center; cursor: default; }
+.routine-form h2 { margin: 0; font-size: 15px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }

@@ -38,4 +38,6 @@ export type NewEntry = {
   duration: number;
 };
 
+export type NewRoutine = Omit<Routine, 'id'>;
+
 export type EntryChanges = Partial<Pick<Entry, 'title' | 'notes' | 'start' | 'duration' | 'status'>>;
