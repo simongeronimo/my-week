@@ -6,12 +6,14 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { DB } from './db.ts';
 import { HttpError, createEntry, createRoutine, deleteEntry, deleteRoutine, getWeek, listRoutines, updateEntry } from './week.ts';
-import { isMonday, localNow, mondayOf } from '../shared/time.ts';
+import { toIcs } from './ics.ts';
+import { addDays, isMonday, localNow, mondayOf } from '../shared/time.ts';
 
 export type AppOptions = {
   db: DB;
   appToken: string;
   agentToken?: string; // the planner agent: may read, and add tasks to the inbox
+  feedToken?: string; // the calendar feed: read-only, sent in the URL
   timeZone: string;
   distDir: string; // built frontend, relative to the working directory
 };
@@ -48,7 +50,7 @@ function isInboxTask(body: unknown): boolean {
   return kind === 'task' && (start === undefined || start === null);
 }
 
-export function createApp({ db, appToken, agentToken, timeZone, distDir }: AppOptions): Hono<Env> {
+export function createApp({ db, appToken, agentToken, feedToken, timeZone, distDir }: AppOptions): Hono<Env> {
   const app = new Hono<Env>();
   const now = () => localNow(timeZone);
 
@@ -102,6 +104,15 @@ export function createApp({ db, appToken, agentToken, timeZone, distDir }: AppOp
     if (e.code === 'ERR_SQLITE_ERROR' && ((e.errcode ?? 0) & 0xff) === 19) return c.json({ error: e.message }, 400);
     console.error(err);
     return c.json({ error: 'Internal error' }, 500);
+  });
+
+  // iPhone Calendar can't send headers, so the feed token is part of the URL. It can only read.
+  app.get('/calendar.ics', (c) => {
+    if (!feedToken) return c.json({ error: 'The calendar feed is off. Set FEED_TOKEN to turn it on.' }, 404);
+    if (!sameToken(c.req.query('token') ?? '', feedToken)) return c.json({ error: 'Missing or wrong token' }, 401);
+    const monday = mondayOf(now());
+    const entries = [0, 7, 14, 21].flatMap((days) => getWeek(db, addDays(monday, days), now()).entries); // this week and the next three
+    return c.body(toIcs(entries, new Date()), 200, { 'Content-Type': 'text/calendar; charset=utf-8' });
   });
 
   app.use('/*', serveStatic({ root: distDir }));

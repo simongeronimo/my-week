@@ -29,7 +29,7 @@ try {
 
 mkdirSync(dataDir, { recursive: true });
 const db = openDb(join(dataDir, 'my-week.db'));
-const app = createApp({ db, appToken, agentToken, timeZone, distDir: 'dist' });
+const app = createApp({ db, appToken, agentToken, feedToken, timeZone, distDir: 'dist' });
 
 serve({ fetch: app.fetch, port }, (info) => {
   console.log(`my-week listening on port ${info.port}, time zone ${timeZone}`);
