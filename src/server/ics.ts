@@ -3,9 +3,17 @@ import type { Entry } from '../shared/types.ts';
 
 // The calendar feed in iCalendar format (RFC 5545), written by hand: it is plain text with three rules.
 
-/** Backslash, semicolon, comma and newline need a backslash in front (RFC 5545, 3.3.11). */
+/**
+ * Backslash, semicolon and comma need a backslash in front, and any line break becomes \n (RFC 5545, 3.3.11).
+ * Other control characters are dropped, so a title can never start a new line in the feed.
+ */
 const escapeText = (text: string) =>
-  text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+  text
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r\n?|\n/g, '\\n')
+    .replace(/[\x00-\x08\x0b-\x1f\x7f]/g, '');
 
 /** '2026-11-25T19:30' becomes '20261125T193000', a floating time that iPhone reads as local time. */
 const icsTime = (time: string) => `${time.replace(/[-:]/g, '')}00`;

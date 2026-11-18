@@ -35,6 +35,14 @@ test('text is escaped and long lines fold without splitting a character', () => 
   assert.ok(unfolded.includes(`SUMMARY:• ${title.replace(',', '\\,').replace(';', '\\;')}\r\n`));
 });
 
+test('control characters in a title cannot break or inject lines', () => {
+  // the agent can send any title; a bare CR would start a new property line in the feed
+  const ics = toIcs([entry({ title: 'a\rDTSTART:20300101T000000\u0007b' })], NOW);
+  assert.ok(!/\r(?!\n)/.test(ics), 'no bare CR');
+  assert.ok(!ics.includes('\u0007'), 'no control characters');
+  assert.ok(ics.includes('SUMMARY:• a\\nDTSTART:20300101T000000b\r\n'));
+});
+
 test('cancelled and unscheduled entries stay out of the feed', () => {
   const ics = toIcs([entry({ id: 1, status: 'cancelled' }), entry({ id: 2, start: null })], NOW);
   assert.ok(!ics.includes('BEGIN:VEVENT'));
