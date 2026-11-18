@@ -3,6 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { openDb } from './db.ts';
 import { createApp } from './app.ts';
+import { localNow } from '../shared/time.ts';
 
 const appToken = process.env.APP_TOKEN;
 if (!appToken) {
@@ -12,6 +13,12 @@ if (!appToken) {
 const dataDir = process.env.DATA_DIR ?? './data';
 const port = Number(process.env.PORT ?? 3000);
 const timeZone = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+try {
+  localNow(timeZone); // a typo here would otherwise turn every API call into a 500
+} catch {
+  console.error(`TZ "${timeZone}" is not a time zone name this server knows. Use one like Europe/Berlin.`);
+  process.exit(1);
+}
 
 mkdirSync(dataDir, { recursive: true });
 const db = openDb(join(dataDir, 'my-week.db'));
