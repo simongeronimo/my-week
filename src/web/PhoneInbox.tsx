@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Entry, WeekView } from '../shared/types.ts';
-import { formatDay, formatDuration, formatTime, mondayOf } from '../shared/time.ts';
+import { formatDuration, mondayOf } from '../shared/time.ts';
+import { itemMeta } from './block.ts';
 import { api } from './api.ts';
 import { MoveForm } from './MoveForm.tsx';
 import { ErrorBanner, browserNow, useErrors } from './page.tsx';
@@ -73,14 +74,14 @@ export function PhoneInbox({ onAuthError }: { onAuthError: () => void }) {
 type LineProps = { entry: Entry; unfinished: boolean; moving: boolean; onMove: (on: boolean) => void; save: Save };
 
 function InboxLine({ entry, unfinished, moving, onMove, save }: LineProps) {
-  const meta = unfinished && entry.start ? `was ${formatDay(entry.start)} ${formatTime(entry.start)}` : '';
+  const meta = itemMeta(entry, unfinished);
   return (
     <li className="line">
       <div className="line-main">
         <span className={unfinished ? 'sig over' : 'sig'} aria-hidden="true">•</span>
         <span className="line-title">
           {entry.title}
-          {meta && <span className="m">{meta}</span>}
+          {meta && <span className={unfinished ? 'm over' : 'm'}>{meta}</span>}
         </span>
         <span className="r mono">{formatDuration(entry.duration)}</span>
       </div>

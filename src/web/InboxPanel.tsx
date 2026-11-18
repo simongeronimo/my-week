@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Draggable } from '@fullcalendar/interaction';
 import type { Entry, WeekView } from '../shared/types.ts';
-import { formatDay, formatDuration, formatTime } from '../shared/time.ts';
+import { formatDuration } from '../shared/time.ts';
+import { itemMeta } from './block.ts';
 import { api } from './api.ts';
 import type { Save } from './Planner.tsx';
 
@@ -49,11 +50,7 @@ export function InboxPanel({ week, save, onOpen }: Props) {
 }
 
 function Item({ entry, unfinished = false, onOpen }: { entry: Entry; unfinished?: boolean; onOpen: (entry: Entry) => void }) {
-  const meta = [
-    unfinished && entry.start ? `was ${formatDay(entry.start)} ${formatTime(entry.start)}` : '',
-    entry.migrations > 0 ? `>${entry.migrations} carried forward` : '',
-    entry.created_by === 'agent' ? 'added by planner agent' : '',
-  ].filter(Boolean).join(', ');
+  const meta = itemMeta(entry, unfinished);
   return (
     <li className={unfinished ? 'item unf' : 'item'} data-id={entry.id} data-title={entry.title} data-duration={entry.duration}>
       <span className="sig" aria-hidden="true">•</span>
