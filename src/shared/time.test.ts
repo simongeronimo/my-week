@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addMinutes, formatDuration, formatTime, isMonday, isoWeek, localNow, mondayOf, weekLabel } from './time.ts';
+import { addMinutes, formatDate, formatDuration, formatTime, isMonday, isoWeek, localNow, mondayOf, weekLabel } from './time.ts';
 
 test('mondayOf finds the Monday, also across months and years', () => {
   assert.equal(mondayOf('2026-11-25T14:10'), '2026-11-23');
@@ -31,4 +31,5 @@ test('time math and labels', () => {
   assert.equal(formatTime('2026-11-25T19:30'), '7:30 pm');
   assert.equal(formatTime('00:15'), '12:15 am');
   assert.equal(formatDuration(90), '1h 30m');
+  assert.equal(formatDate('2026-11-25T14:10'), 'Wed 25 Nov');
 });

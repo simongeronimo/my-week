@@ -3,10 +3,14 @@ import type { ComponentType } from 'react';
 import { getToken, setToken } from './api.ts';
 import { Planner } from './Planner.tsx';
 import { RoutinesPage } from './RoutinesPage.tsx';
+import { Today } from './Today.tsx';
+import { PhoneInbox } from './PhoneInbox.tsx';
 
 /** One page per path. Pages link with plain <a href> loads, so no router library is needed. */
 const PAGES: Record<string, ComponentType<{ onAuthError: () => void }>> = {
   '/routines': RoutinesPage,
+  '/today': Today,
+  '/inbox': PhoneInbox,
 };
 
 export function App() {

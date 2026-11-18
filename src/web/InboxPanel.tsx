@@ -66,7 +66,7 @@ function Item({ entry, unfinished = false, onOpen }: { entry: Entry; unfinished?
   );
 }
 
-function QuickAdd({ onAdd }: { onAdd: (title: string, duration: number) => void }) {
+export function QuickAdd({ onAdd, durations = DURATIONS }: { onAdd: (title: string, duration: number) => void; durations?: number[] }) {
   const [title, setTitle] = useState('');
   const [duration, setDuration] = useState(30);
   return (
@@ -83,7 +83,7 @@ function QuickAdd({ onAdd }: { onAdd: (title: string, duration: number) => void 
       <label htmlFor="new-task">New task</label>
       <input id="new-task" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Fix bike brakes" autoComplete="off" required />
       <div className="chips" role="group" aria-label="Duration">
-        {DURATIONS.map((d) => (
+        {durations.map((d) => (
           <button key={d} type="button" className={d === duration ? 'chip on' : 'chip'} aria-pressed={d === duration} onClick={() => setDuration(d)}>
             {formatDuration(d)}
           </button>

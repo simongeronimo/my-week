@@ -77,6 +77,11 @@ export function formatDay(dateOrTime: string): string {
   return new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: 'UTC' }).format(utc(dateOrTime));
 }
 
+/** '2026-11-25T14:10' becomes 'Wed 25 Nov'. */
+export function formatDate(dateOrTime: string): string {
+  return new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(utc(dateOrTime));
+}
+
 /** '2026-11-23' becomes '23 to 29 Nov 2026'. */
 export function weekLabel(monday: string): string {
   const sunday = addDays(monday, 6);

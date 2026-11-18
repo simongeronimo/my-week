@@ -125,3 +125,32 @@ legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
 .routine-row { align-items: center; cursor: default; }
 .routine-form h2 { margin: 0; font-size: 15px; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* Phone pages: 44px touch targets, and 16px inputs so iOS doesn't zoom in */
+.phone { max-width: 480px; margin: 0 auto; padding: 20px 16px 32px; display: flex; flex-direction: column; gap: 18px; }
+.phone-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.phone-top h1 { margin: 0; font-size: 20px; font-weight: 600; }
+.phone section { display: flex; flex-direction: column; gap: 6px; }
+.sh { margin: 0; display: flex; align-items: baseline; justify-content: space-between; font-size: 13px; font-weight: 600; }
+.sh span { font: 400 12px var(--mono); color: var(--muted); }
+.phone .btn, .phone .chip { height: 44px; }
+.phone input { height: 44px; font-size: 16px; }
+.phone-links { display: flex; gap: 8px; }
+.phone-links .btn { flex: 1; justify-content: center; border-color: var(--line); background: transparent; }
+.rows { list-style: none; margin: 0; padding: 0; }
+.line { padding: 2px 0; border-bottom: 1px solid var(--line); }
+.line:last-child { border-bottom: 0; }
+.line-main { display: flex; align-items: center; gap: 4px; min-height: 44px; }
+.line .time { width: 70px; flex: none; font-size: 12px; color: var(--muted); }
+.tick { width: 40px; height: 44px; flex: none; padding: 0; border: 0; background: none; font: 500 18px var(--mono); cursor: pointer; }
+.ev, .phone .sig { width: 40px; flex: none; text-align: center; font: 500 14px var(--mono); color: var(--muted); }
+.phone .sig.over { color: var(--over); }
+.line-title { flex: 1; min-width: 0; min-height: 44px; display: flex; flex-direction: column; justify-content: center; padding: 0; border: 0; background: none; text-align: left; font-size: 15px; font-weight: 500; cursor: pointer; }
+.line-title .m { font: 400 11px var(--mono); color: var(--over); }
+.line .mig, .line .r { font-size: 12px; color: var(--muted); }
+.mini { height: 32px; padding: 0 10px; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper); color: var(--ink); font-size: 12px; font-weight: 500; cursor: pointer; }
+.line .actions { margin: 0 0 8px 44px; }
+.line.big { padding: 6px 10px; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--ink); color: var(--paper); }
+.line.big .line-title { font-size: 22px; font-weight: 600; }
+.line.big .time, .line.big .ev, .line.big .mig { color: inherit; opacity: 0.75; }
+.move { display: flex; flex-direction: column; gap: 6px; padding: 8px 0 10px; }
