@@ -1,17 +1,19 @@
-# Dockge stack for my-week. Put APP_TOKEN in the stack's .env file.
+# Dockge stack for my-week. Put APP_TOKEN, AGENT_TOKEN and FEED_TOKEN in the stack's .env file.
 services:
   my-week:
-    image: my-week:0.1.0
+    image: my-week:0.2.0
     container_name: my-week
     restart: unless-stopped
     user: "568:568"             # TrueNAS apps user; must own the data folder
     environment:
       TZ: Etc/UTC               # replace with your zone, for example Europe/Berlin
       APP_TOKEN: ${APP_TOKEN}
+      AGENT_TOKEN: ${AGENT_TOKEN}     # leave unset to keep the agent out
+      FEED_TOKEN: ${FEED_TOKEN}       # leave unset to turn the calendar feed off
     volumes:
       - /mnt/tank/apps/my-week:/data   # your TrueNAS dataset
     networks:
       - apps
 networks:
   apps:
-    external: true              # shared with Nginx Proxy Manager (and the planner agent in milestone 2)
+    external: true              # shared with Nginx Proxy Manager and the planner agent

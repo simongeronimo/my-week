@@ -16,5 +16,6 @@ COPY --from=build /app/dist ./dist
 COPY src/server ./src/server
 COPY src/shared ./src/shared
 COPY migrations ./migrations
+COPY docs/agent-api.md ./docs/agent-api.md
 EXPOSE 3000
 CMD ["node", "src/server/index.ts"]
