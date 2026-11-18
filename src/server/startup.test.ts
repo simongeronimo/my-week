@@ -21,7 +21,7 @@ test('the server refuses to start with a misspelled TZ', () => {
 });
 
 test('the server refuses to start when any two tokens are the same', () => {
-  const pairs = [
+  const pairs: Record<string, string>[] = [
     { APP_TOKEN: 'same', AGENT_TOKEN: 'same' },
     { APP_TOKEN: 'same', FEED_TOKEN: 'same' },
     { AGENT_TOKEN: 'same', FEED_TOKEN: 'same' },
