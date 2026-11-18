@@ -51,7 +51,7 @@ curl -s -X DELETE "$URL/api/routines/<id>" -H "Authorization: Bearer $TOKEN"
 
 ## iPhone
 
-1. In Safari, open `https://<subdomain>/today` and paste your `APP_TOKEN`. Then tap Share and Add to Home Screen. The page opens like an app, and keeps its own copy of the token.
+1. In Safari, open `https://<subdomain>/today`, then tap Share and Add to Home Screen. Open my-week from the home screen and paste your `APP_TOKEN` there. The home screen app doesn't share Safari's storage, so a token pasted in Safari doesn't carry over.
 2. Subscribe to the calendar on the iPhone itself: Settings, Apps, Calendar, Calendar Accounts, Add Account, Other, Add Subscribed Calendar. Enter `https://<subdomain>/calendar.ics?token=<FEED_TOKEN>`. Don't add it through iCloud on a Mac, because Apple's servers would fetch it and they can't reach a Tailscale-only address.
 3. In the Tailscale app, turn on VPN On Demand, so the phone can reach the feed whenever iOS refreshes it.
 4. Add Calendar's Up Next widget to the home screen.

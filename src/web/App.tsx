@@ -25,7 +25,7 @@ export function App() {
       />
     );
   }
-  const Page = PAGES[window.location.pathname] ?? Planner;
+  const Page = PAGES[window.location.pathname.replace(/\/+$/, '')] ?? Planner; // /today/ works like /today
   return <Page onAuthError={() => setHasToken(false)} />;
 }
 

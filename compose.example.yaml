@@ -8,8 +8,8 @@ services:
     environment:
       TZ: Etc/UTC               # replace with your zone, for example Europe/Berlin
       APP_TOKEN: ${APP_TOKEN}
-      AGENT_TOKEN: ${AGENT_TOKEN}     # leave unset to keep the agent out
-      FEED_TOKEN: ${FEED_TOKEN}       # leave unset to turn the calendar feed off
+      AGENT_TOKEN: ${AGENT_TOKEN:-}   # leave unset to keep the agent out
+      FEED_TOKEN: ${FEED_TOKEN:-}     # leave unset to turn the calendar feed off
     volumes:
       - /mnt/tank/apps/my-week:/data   # your TrueNAS dataset
     networks:

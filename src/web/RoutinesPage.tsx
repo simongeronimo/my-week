@@ -14,13 +14,17 @@ export function RoutinesPage({ onAuthError }: { onAuthError: () => void }) {
     load();
   }, [load]);
 
-  const save = async (change: Promise<unknown>) => {
+  /** Sends a change, reloads the list, and reports whether the change worked. */
+  const save = async (change: Promise<unknown>): Promise<boolean> => {
+    let ok = true;
     try {
       await change;
     } catch (err) {
+      ok = false;
       fail(err);
     }
     await load();
+    return ok;
   };
 
   return (
@@ -57,7 +61,7 @@ export function RoutinesPage({ onAuthError }: { onAuthError: () => void }) {
   );
 }
 
-function RoutineForm({ onAdd }: { onAdd: (routine: NewRoutine) => void }) {
+function RoutineForm({ onAdd }: { onAdd: (routine: NewRoutine) => Promise<boolean> }) {
   const [kind, setKind] = useState<Kind>('event');
   const [title, setTitle] = useState('');
   const [days, setDays] = useState([true, true, true, true, true, false, false]);
@@ -67,11 +71,11 @@ function RoutineForm({ onAdd }: { onAdd: (routine: NewRoutine) => void }) {
   return (
     <form
       className="quick-add routine-form"
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
         if (!title.trim() || !days.some(Boolean)) return;
-        onAdd({ kind, title: title.trim(), days: daysPattern(days), at, duration });
-        setTitle('');
+        const added = await onAdd({ kind, title: title.trim(), days: daysPattern(days), at, duration });
+        if (added) setTitle(''); // keep what you typed when the save fails
       }}
     >
       <h2>New routine</h2>
