@@ -153,4 +153,6 @@ legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
 .line.big { padding: 6px 10px; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--ink); color: var(--paper); }
 .line.big .line-title { font-size: 22px; font-weight: 600; }
 .line.big .time, .line.big .ev, .line.big .mig { color: inherit; opacity: 0.75; }
+.line.big .line-main { flex-wrap: wrap; }
+.line.big .time { order: 1; width: 100%; padding: 0 0 4px 44px; } /* the Now card puts its time range under the title */
 .move { display: flex; flex-direction: column; gap: 6px; padding: 8px 0 10px; }

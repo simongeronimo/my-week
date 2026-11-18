@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Entry, WeekView } from '../shared/types.ts';
 import { addDays, addMinutes, formatDate, formatTime, mondayOf } from '../shared/time.ts';
 import { api } from './api.ts';
-import { todayView, until } from './today.ts';
+import { timeRange, todayView, until } from './today.ts';
 import { MoveForm } from './MoveForm.tsx';
 import { QuickAdd } from './InboxPanel.tsx';
 import { ErrorBanner, browserNow, useErrors } from './page.tsx';
@@ -98,7 +98,7 @@ function Line({ entry, big, moving, onMove, save }: LineProps) {
   return (
     <li className={big ? 'line big' : 'line'}>
       <div className="line-main">
-        <span className="time mono">{formatTime(entry.start!)}</span>
+        <span className="time mono">{big ? timeRange(entry.start!, entry.duration) : formatTime(entry.start!)}</span>
         {isTask ? (
           <button type="button" className="tick" aria-label={`Tick ${entry.title}`} onClick={() => save(api.updateEntry(entry.id, { status: 'done' }))}>•</button>
         ) : (

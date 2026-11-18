@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { todayView, until } from './today.ts';
+import { timeRange, todayView, until } from './today.ts';
 import type { Entry } from '../shared/types.ts';
 
 const at = (id: number, start: string, duration: number, over: Partial<Entry> = {}): Entry => ({
@@ -45,4 +45,9 @@ test('until counts the minutes between two times', () => {
   assert.equal(until('2026-11-25T14:10', '2026-11-25T17:00'), '2h 50m');
   assert.equal(until('2026-11-25T23:50', '2026-11-26T00:05'), '15m');
   assert.equal(until('2026-11-25T14:10', '2026-11-25T14:10'), '0m');
+});
+
+test('the Now card shows its time range', () => {
+  assert.equal(timeRange('2026-11-25T15:30', 45), '3:30 pm to 4:15 pm');
+  assert.equal(timeRange('2026-11-25T08:00', 540), '8:00 am to 5:00 pm');
 });

@@ -1,4 +1,4 @@
-import { addMinutes, formatDuration } from '../shared/time.ts';
+import { addMinutes, formatDuration, formatTime } from '../shared/time.ts';
 import type { Entry } from '../shared/types.ts';
 
 export type TodayView = { now: Entry | null; next: Entry | null; later: Entry[] };
@@ -20,6 +20,11 @@ export function todayView(entries: Entry[], now: string): TodayView {
     next: upcoming[0] ?? null,
     later: upcoming.slice(1).filter((e) => e.start!.slice(0, 10) === now.slice(0, 10)),
   };
+}
+
+/** A start and duration as '3:30 pm to 4:15 pm', for the Now card. */
+export function timeRange(start: string, duration: number): string {
+  return `${formatTime(start)} to ${formatTime(addMinutes(start, duration))}`;
 }
 
 /** The time from one wall-clock time to another, like '2h 50m'. */
