@@ -1,0 +1,35 @@
+{
+  "name": "my-week",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "dev:server": "node --watch src/server/index.ts",
+    "dev:web": "vite",
+    "build": "vite build",
+    "start": "node src/server/index.ts",
+    "test": "node --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@hono/node-server": "2.1.9",
+    "hono": "4.13.19"
+  },
+  "devDependencies": {
+    "@fullcalendar/core": "6.1.22",
+    "@fullcalendar/interaction": "6.1.22",
+    "@fullcalendar/react": "6.1.22",
+    "@fullcalendar/timegrid": "6.1.22",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "typescript": "5.9.3",
+    "vite": "8.3.8"
+  }
+}
