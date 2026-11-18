@@ -40,6 +40,9 @@ test('bad requests get a JSON error with the right status', async () => {
   const bad = await send('POST', '/api/entries', { kind: 'task', title: 'X', duration: 0 });
   assert.equal(bad.status, 400);
   assert.match(((await bad.json()) as { error: string }).error, /duration BETWEEN 5 AND 1440/);
+  const wrongType = await send('POST', '/api/entries', { kind: 'task', title: 'X', duration: 'abc' });
+  assert.equal(wrongType.status, 400); // SQLite's datatype error, not only CHECK failures, maps to 400
+  assert.match(((await wrongType.json()) as { error: string }).error, /cannot store TEXT/);
   assert.equal((await send('POST', '/api/entries', '{not json')).status, 400);
   assert.equal((await send('POST', '/api/entries', '[1, 2]')).status, 400);
   assert.equal((await send('POST', '/api/routines', {})).status, 400);

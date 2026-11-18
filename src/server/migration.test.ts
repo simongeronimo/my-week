@@ -54,7 +54,11 @@ test('writes reject read-only fields, wrong types and impossible changes', () =>
   const db = openDb(':memory:');
   const event = createEntry(db, { kind: 'event', title: 'Dentist', start: '2026-11-25T15:30', duration: 45 });
   assert.throws(() => updateEntry(db, event.id, { created_by: 'agent' }, NOW), { status: 400, message: /created_by/ });
-  assert.throws(() => updateEntry(db, event.id, { migrations: 9 }, NOW), { status: 400 });
+  assert.throws(() => updateEntry(db, event.id, { migrations: 9 }, NOW), { status: 400, message: /migrations/ });
+  assert.throws(() => updateEntry(db, event.id, { id: 7 }, NOW), { status: 400, message: /\bid\b/ });
+  assert.throws(() => updateEntry(db, event.id, { routine_id: 1 }, NOW), { status: 400, message: /routine_id/ });
+  assert.throws(() => updateEntry(db, event.id, { colour: 'red' }, NOW), { status: 400, message: /colour/ });
+  assert.throws(() => updateEntry(db, event.id, { title: { text: 'X' } }, NOW), { status: 400, message: /title/ });
   assert.throws(() => createEntry(db, { kind: 'task', title: 'X', duration: true }), { status: 400 });
   assert.throws(() => createEntry(db, { kind: 'task', title: 'X', duration: 'abc' }), /cannot store TEXT/);
   assert.throws(() => updateEntry(db, event.id, { start: null }, NOW), /kind = 'task' OR start IS NOT NULL/);
