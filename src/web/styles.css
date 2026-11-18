@@ -141,7 +141,7 @@ legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
 .line { padding: 2px 0; border-bottom: 1px solid var(--line); }
 .line:last-child { border-bottom: 0; }
 .line-main { display: flex; align-items: center; gap: 4px; min-height: 44px; }
-.line .time { width: 70px; flex: none; font-size: 12px; color: var(--muted); }
+.line .time { width: 84px; flex: none; font-size: 12px; color: var(--muted); }
 .tick { width: 44px; height: 44px; flex: none; padding: 0; border: 0; background: none; font: 500 18px var(--mono); cursor: pointer; }
 .ev, .phone .sig { width: 44px; flex: none; text-align: center; font: 500 14px var(--mono); color: var(--muted); }
 .phone .sig.over { color: var(--over); }

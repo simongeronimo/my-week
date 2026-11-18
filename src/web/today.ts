@@ -1,4 +1,4 @@
-import { addMinutes, formatDuration, formatTime } from '../shared/time.ts';
+import { addMinutes, formatDay, formatDuration, formatTime } from '../shared/time.ts';
 import type { Entry } from '../shared/types.ts';
 
 export type TodayView = { now: Entry | null; next: Entry | null; later: Entry[] };
@@ -20,6 +20,11 @@ export function todayView(entries: Entry[], now: string): TodayView {
     next: upcoming[0] ?? null,
     later: upcoming.slice(1).filter((e) => e.start!.slice(0, 10) === now.slice(0, 10)),
   };
+}
+
+/** A line's time, with the day in front when it isn't today: '7:30 pm' or 'Thu 8:00 am'. */
+export function lineTime(start: string, now: string): string {
+  return start.slice(0, 10) === now.slice(0, 10) ? formatTime(start) : `${formatDay(start)} ${formatTime(start)}`;
 }
 
 /** A start and duration as '3:30 pm to 4:15 pm', for the Now card. */

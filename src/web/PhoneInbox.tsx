@@ -62,7 +62,8 @@ export function PhoneInbox({ onAuthError }: { onAuthError: () => void }) {
       )}
       <section>
         <h2 className="sh">Inbox <span>{inbox.length}</span></h2>
-        {inbox.length === 0 && <p className="hint">Empty. Add tasks on the Today page.</p>}
+        {week === null && <p className="hint">Loading the inbox.</p>}
+        {week !== null && inbox.length === 0 && <p className="hint">Empty. Add tasks on the Today page.</p>}
         <ul className="rows">{inbox.map((e) => line(e, false))}</ul>
       </section>
     </main>
