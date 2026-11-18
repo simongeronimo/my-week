@@ -159,7 +159,7 @@ ORDER BY start;
 
 ### Rules
 
-1. **Filling a week.** Any request that reads week W (the week view, the feed, the agent) checks `filled_weeks` first. If W is missing, one transaction inserts a copy of every routine on each matching day of W, then inserts W into `filled_weeks`. A copy you delete later stays deleted, because W is already marked as filled. The code has a `ponytail:` comment saying that a GET request writes to the database here.
+1. **Filling a week.** Any request that reads week W (the week view, the feed, the agent) checks `filled_weeks` first. If W is missing, one transaction inserts a copy of every routine on each matching day of W from now onward, then inserts W into `filled_weeks`. Past days get no copies, so browsing an old week never fills Unfinished with routine tasks. A copy you delete later stays deleted, because W is already marked as filled. The code has a `ponytail:` comment saying that a GET request writes to the database here.
 2. **Creating a routine.** The server inserts the routine, then adds its copies to every filled week, but only for days from now onward.
 3. **Deleting a routine.** The server deletes the routine's open copies that start after now. Past copies stay, and `ON DELETE SET NULL` clears their `routine_id`.
 4. **Editing a routine.** Editing means deleting the routine and creating it again, so it follows rules 2 and 3.

@@ -37,12 +37,15 @@ function insert<T>(db: DB, table: string, row: Row): T {
 
 // Weeks
 
-/** Rule 1: the first read of a week copies every routine into it. */
-export function fillWeek(db: DB, monday: string): void {
+/**
+ * Rule 1: the first read of a week copies every routine into it, from now on.
+ * Past days get no copies, so browsing an old week never fills Unfinished with routine tasks.
+ */
+export function fillWeek(db: DB, monday: string, now: string): void {
   // ponytail: a GET request writes here on a week's first read. Fine for one user; a nightly job is the upgrade path.
   if (one(db, 'SELECT 1 FROM filled_weeks WHERE monday = ?', [monday])) return;
   transaction(db, () => {
-    for (const routine of all<Routine>(db, 'SELECT * FROM routines')) insertCopies(db, routine, monday);
+    for (const routine of all<Routine>(db, 'SELECT * FROM routines')) insertCopies(db, routine, monday, now);
     run(db, 'INSERT INTO filled_weeks (monday) VALUES (?)', [monday]);
   });
 }
@@ -60,7 +63,7 @@ function insertCopies(db: DB, routine: Routine, monday: string, from?: string): 
 }
 
 export function getWeek(db: DB, monday: string, now: string): WeekView {
-  fillWeek(db, monday);
+  fillWeek(db, monday, now);
   return {
     monday,
     entries: all<Entry>(
