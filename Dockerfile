@@ -1,5 +1,5 @@
 # Build stage: install everything and build the frontend into dist/
-FROM node:24 AS build
+FROM node:24.22.3 AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -7,7 +7,7 @@ COPY . .
 RUN npm run build
 
 # Runtime stage: the server, its two runtime dependencies and the built frontend
-FROM node:24-slim
+FROM node:24.22.3-slim
 WORKDIR /app
 ENV NODE_ENV=production PORT=3000 DATA_DIR=/data
 COPY package.json package-lock.json ./

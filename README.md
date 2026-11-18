@@ -16,22 +16,26 @@ npm run dev:web                          # UI on http://localhost:5173, sends /a
 
 ## Deploy on TrueNAS with Dockge
 
-1. Build the image on the server, and tag the same commit in git:
-   ```sh
-   docker build -t my-week:0.2.0 .
-   git tag v0.2.0
-   ```
-2. Create a dataset for the data, for example `/mnt/tank/apps/my-week`, owned by user and group 568.
-3. In Dockge, create a stack from `compose.example.yaml` and set `TZ`. Put three different tokens in the stack's `.env`, each made with `openssl rand -hex 32`:
+Dockge builds the image straight from this GitHub repo at a version tag, so the server needs no clone.
+
+1. Create a dataset for the data, for example `/mnt/tank/apps/my-week`, owned by user and group 568.
+2. In Dockge, create a stack named `my-week` and paste `compose.example.yaml`. Change the dataset path, `TZ`, and the network name if Nginx Proxy Manager uses another one.
+3. In the stack's `.env`, put three different tokens, each made with `openssl rand -hex 32`:
    ```sh
    APP_TOKEN=...      # you, in the browser and on the phone
    AGENT_TOKEN=...    # the planner agent
    FEED_TOKEN=...     # the calendar feed
    ```
-4. In Nginx Proxy Manager, add a proxy host for your subdomain that points at `http://my-week:3000`, with a Let's Encrypt certificate.
-5. Open the subdomain and paste your `APP_TOKEN`.
+4. Deploy. The first build downloads Node and the packages, so it takes a few minutes. The log ends with `my-week listening on port 3000`.
+5. In Nginx Proxy Manager, add a proxy host for your subdomain that points at `http://my-week:3000`, with a Let's Encrypt certificate.
+6. Open the subdomain and paste your `APP_TOKEN`.
 
-To upgrade, take a snapshot of the dataset, build a new tag, change the tag in Dockge, and redeploy. Copying `/data` by hand while the app runs can catch a half-written file, so stop the container first if you copy by hand.
+To upgrade:
+1. Tag the new commit, for example `git tag v0.3.0`, and push the tag.
+2. Take a snapshot of the dataset.
+3. In the stack, change both `#v0.2.0` and `my-week:0.2.0` to the new version, and redeploy.
+
+To roll back, restore the snapshot and change both versions back. Copying `/data` by hand while the app runs can catch a half-written file, so stop the container first if you copy by hand.
 
 ## Routines
 
