@@ -168,6 +168,7 @@ export function Planner({ onAuthError }: { onAuthError: () => void }) {
             nowIndicator
             editable
             selectable
+            selectMinDistance={5}
             droppable
             dayHeaderContent={(arg) => `${formatDay(fromDate(arg.date))} ${arg.date.getDate()}`}
             slotLabelFormat={{ hour: 'numeric', minute: '2-digit', omitZeroMinute: true, hour12: USE_12_HOUR }}
