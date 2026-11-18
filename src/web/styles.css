@@ -84,7 +84,7 @@ label { font-size: 12px; font-weight: 600; }
 .fc .fc-day-today .fc-col-header-cell-cushion { color: var(--accent); }
 .fc .fc-timegrid-slot { height: 24px; border-color: transparent; }
 .fc .fc-timegrid-slot-label-cushion { font: 400 11px var(--mono); color: var(--muted); }
-.fc .fc-timegrid-col { background-image: radial-gradient(circle, var(--dot) 1px, transparent 1.5px); background-size: 24px 24px; background-position: -12px -12px; }
+.fc .fc-timegrid-col:not(.fc-timegrid-axis) { background-image: radial-gradient(circle, var(--dot) 1px, transparent 1.5px); background-size: 24px 24px; background-position: -12px -12px; }
 .fc .fc-timegrid-now-indicator-line { border-width: 2px 0 0; }
 
 /* Blocks */
@@ -96,7 +96,7 @@ label { font-size: 12px; font-weight: 600; }
 .fc .k-task.routine { background: transparent; border: 1px dashed var(--muted); color: var(--ink); }
 .fc .done .ttl { text-decoration: line-through; }
 .fc .done, .fc .past { opacity: 0.55; }
-.fc .overdue { border: 1.5px solid var(--over); }
+.fc .fc-v-event.overdue { border: 1.5px solid var(--over); } /* beats .k-task.routine, so overdue habits turn red too */
 .fc .overdue .sig, .fc .overdue .ttl { color: var(--over); }
 .blk { height: 100%; overflow: hidden; padding: 3px 6px; }
 .blk .r1 { display: flex; align-items: baseline; gap: 5px; font-size: 12px; font-weight: 500; line-height: 15px; }

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { blockParts } from './block.ts';
+import { blockParts, withinOneDay } from './block.ts';
 import type { Entry } from '../shared/types.ts';
 
 test('the drag preview of an inbox item renders without an entry', () => {
@@ -12,6 +12,13 @@ test('the drag preview of an inbox item renders without an entry', () => {
     title: 'Fix bike brakes',
     migrations: 0,
   });
+});
+
+test('a selection on the grid must stay within one day', () => {
+  const at = (day: number, hour: number, minute = 0) => new Date(2026, 10, day, hour, minute); // local time
+  assert.equal(withinOneDay(at(25, 20), at(25, 21)), true);
+  assert.equal(withinOneDay(at(25, 23, 30), at(26, 0)), true); // the end is exclusive, so midnight still counts
+  assert.equal(withinOneDay(at(25, 20), at(26, 9)), false); // a diagonal drag into the next day
 });
 
 test('a saved entry shows its own signifier, title and migration count', () => {

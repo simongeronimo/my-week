@@ -1,4 +1,10 @@
 import type { Entry } from '../shared/types.ts';
+import { fromDate } from '../shared/time.ts';
+
+/** A selection must stay within one day. Its end is exclusive, so a slot ending at midnight still counts. */
+export function withinOneDay(start: Date, end: Date): boolean {
+  return fromDate(start).slice(0, 10) === fromDate(new Date(end.getTime() - 1)).slice(0, 10);
+}
 
 /**
  * What a block on the grid shows: signifier, title and migration count.

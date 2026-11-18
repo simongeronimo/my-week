@@ -11,7 +11,7 @@ import {
 } from '../shared/time.ts';
 import { AuthError, api } from './api.ts';
 import { InboxPanel } from './InboxPanel.tsx';
-import { blockParts } from './block.ts';
+import { blockParts, withinOneDay } from './block.ts';
 import { EntryDialog } from './EntryDialog.tsx';
 
 export type Save = (change: Promise<unknown>, revert?: () => void) => Promise<void>;
@@ -69,7 +69,13 @@ export function Planner({ onAuthError }: { onAuthError: () => void }) {
     [onAuthError],
   );
 
-  const load = useCallback(() => api.week(monday).then(setWeek, fail), [monday, fail]);
+  // Clicking next week twice quickly sends two requests; drop any answer for a week no longer on screen.
+  const shownMonday = useRef(monday);
+  shownMonday.current = monday;
+  const load = useCallback(
+    () => api.week(monday).then((w) => { if (w.monday === shownMonday.current) setWeek(w); }, fail),
+    [monday, fail],
+  );
 
   useEffect(() => {
     load();
@@ -169,6 +175,7 @@ export function Planner({ onAuthError }: { onAuthError: () => void }) {
             editable
             selectable
             selectMinDistance={5}
+            selectAllow={(span) => withinOneDay(span.start, span.end)}
             droppable
             dayHeaderContent={(arg) => `${formatDay(fromDate(arg.date))} ${arg.date.getDate()}`}
             slotLabelFormat={{ hour: 'numeric', minute: '2-digit', omitZeroMinute: true, hour12: USE_12_HOUR }}
