@@ -11,6 +11,7 @@ import {
 } from '../shared/time.ts';
 import { AuthError, api } from './api.ts';
 import { InboxPanel } from './InboxPanel.tsx';
+import { blockParts } from './block.ts';
 import { EntryDialog } from './EntryDialog.tsx';
 
 export type Save = (change: Promise<unknown>, revert?: () => void) => Promise<void>;
@@ -36,16 +37,15 @@ function blockClasses(entry: Entry): string[] {
 }
 
 function Block({ arg }: { arg: EventContentArg }) {
-  const entry = arg.event.extendedProps.entry as Entry;
+  const { sig, title, migrations } = blockParts(arg.event.extendedProps.entry as Entry | undefined, arg.event.title);
   const start = arg.event.start!;
   const end = arg.event.end ?? start;
-  const sig = entry.kind === 'event' ? '○' : entry.status === 'done' ? '×' : '•';
   return (
     <div className="blk">
       <div className="r1">
         <span className="sig">{sig}</span>
-        <span className="ttl">{entry.title}</span>
-        {entry.migrations > 0 && <span className="mig">&gt;{entry.migrations}</span>}
+        <span className="ttl">{title}</span>
+        {migrations > 0 && <span className="mig">&gt;{migrations}</span>}
       </div>
       <div className="tm">
         {formatTime(fromDate(start))} · {formatDuration(minutesBetween(start, end))}
