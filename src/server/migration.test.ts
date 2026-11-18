@@ -21,6 +21,13 @@ test('planning ahead is not a migration', () => {
   assert.equal(updateEntry(db, task.id, { duration: 60 }, '2026-11-28T09:00').migrations, 0); // resized, same start
 });
 
+test('moving a ticked task is not a migration, even after its time passed', () => {
+  const db = openDb(':memory:');
+  const task = createEntry(db, { kind: 'task', title: 'Groceries', start: '2026-11-24T17:45', duration: 45 });
+  updateEntry(db, task.id, { status: 'done' }, NOW);
+  assert.equal(updateEntry(db, task.id, { start: '2026-11-24T18:30' }, NOW).migrations, 0);
+});
+
 test('sending a ticked task back to the inbox reopens it', () => {
   const db = openDb(':memory:');
   const task = createEntry(db, { kind: 'task', title: 'Groceries', start: '2026-11-24T17:45', duration: 45 });
