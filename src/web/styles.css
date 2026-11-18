@@ -133,7 +133,7 @@ legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
 .phone section { display: flex; flex-direction: column; gap: 6px; }
 .sh { margin: 0; display: flex; align-items: baseline; justify-content: space-between; font-size: 13px; font-weight: 600; }
 .sh span { font: 400 12px var(--mono); color: var(--muted); }
-.phone .btn, .phone .chip { height: 44px; }
+.phone .btn, .phone .chip { height: 44px; min-width: 44px; }
 .phone input { height: 44px; font-size: 16px; }
 .phone-links { display: flex; gap: 8px; }
 .phone-links .btn { flex: 1; justify-content: center; border-color: var(--line); background: transparent; }
@@ -142,13 +142,13 @@ legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
 .line:last-child { border-bottom: 0; }
 .line-main { display: flex; align-items: center; gap: 4px; min-height: 44px; }
 .line .time { width: 70px; flex: none; font-size: 12px; color: var(--muted); }
-.tick { width: 40px; height: 44px; flex: none; padding: 0; border: 0; background: none; font: 500 18px var(--mono); cursor: pointer; }
-.ev, .phone .sig { width: 40px; flex: none; text-align: center; font: 500 14px var(--mono); color: var(--muted); }
+.tick { width: 44px; height: 44px; flex: none; padding: 0; border: 0; background: none; font: 500 18px var(--mono); cursor: pointer; }
+.ev, .phone .sig { width: 44px; flex: none; text-align: center; font: 500 14px var(--mono); color: var(--muted); }
 .phone .sig.over { color: var(--over); }
 .line-title { flex: 1; min-width: 0; min-height: 44px; display: flex; flex-direction: column; justify-content: center; padding: 0; border: 0; background: none; text-align: left; font-size: 15px; font-weight: 500; cursor: pointer; }
 .line-title .m { font: 400 11px var(--mono); color: var(--over); }
 .line .mig, .line .r { font-size: 12px; color: var(--muted); }
-.mini { height: 32px; padding: 0 10px; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper); color: var(--ink); font-size: 12px; font-weight: 500; cursor: pointer; }
+.mini { height: 44px; padding: 0 10px; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper); color: var(--ink); font-size: 12px; font-weight: 500; cursor: pointer; }
 .line .actions { margin: 0 0 8px 44px; }
 .line.big { padding: 6px 10px; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--ink); color: var(--paper); }
 .line.big .line-title { font-size: 22px; font-weight: 600; }
@@ -156,3 +156,5 @@ legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
 .line.big .line-main { flex-wrap: wrap; }
 .line.big .time { order: 1; width: 100%; padding: 0 0 4px 44px; } /* the Now card puts its time range under the title */
 .move { display: flex; flex-direction: column; gap: 6px; padding: 8px 0 10px; }
+.line.big .move { margin: 8px -10px -6px; padding: 10px; border-radius: 0 0 var(--radius) var(--radius); background: var(--paper); color: var(--ink); } /* readable form under the dark Now card */
+.token-screen input { height: 44px; font-size: 16px; } /* 16px stops iOS zooming in while you paste the token */

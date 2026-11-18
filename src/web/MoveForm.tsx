@@ -13,7 +13,7 @@ export function MoveForm({ entry, onSave, onCancel }: { entry: Entry; onSave: (s
       }}
     >
       <label htmlFor={`move-${entry.id}`}>Move "{entry.title}" to</label>
-      <input id={`move-${entry.id}`} type="datetime-local" step={900} value={start} onChange={(e) => setStart(e.target.value)} required />
+      <input id={`move-${entry.id}`} type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} required />
       <div className="actions end">
         <button type="button" className="btn" onClick={onCancel}>Cancel</button>
         <button type="submit" className="btn primary">Move</button>
