@@ -3,7 +3,7 @@ CREATE TABLE routines (
   kind      TEXT NOT NULL CHECK (kind IN ('task', 'event')),
   title     TEXT NOT NULL CHECK (title <> ''),
   days      TEXT NOT NULL CHECK (days GLOB '[M.][T.][W.][T.][F.][S.][S.]' AND days <> '.......'),
-  at        TEXT NOT NULL CHECK (at GLOB '[0-9][0-9]:[0-9][0-9]' AND time(at) IS NOT NULL),
+  at        TEXT NOT NULL CHECK (at GLOB '[0-9][0-9]:[0-9][0-9]' AND time(at) IS NOT NULL AND at < '24:00'),
   duration  INTEGER NOT NULL CHECK (duration BETWEEN 5 AND 1440)
 ) STRICT;
 
@@ -12,7 +12,7 @@ CREATE TABLE entries (
   kind        TEXT NOT NULL CHECK (kind IN ('task', 'event')),
   title       TEXT NOT NULL CHECK (title <> ''),
   notes       TEXT,
-  start       TEXT CHECK (start IS NULL OR (start GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]' AND datetime(start) IS NOT NULL)),
+  start       TEXT CHECK (start IS NULL OR (start GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]' AND datetime(start) IS NOT NULL AND date(start) = substr(start, 1, 10) AND substr(start, 12) < '24:00')),
   duration    INTEGER NOT NULL CHECK (duration BETWEEN 5 AND 1440),
   status      TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'done', 'cancelled')),
   migrations  INTEGER NOT NULL DEFAULT 0,

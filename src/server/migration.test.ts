@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { openDb } from './db.ts';
-import { createEntry, getWeek, updateEntry } from './week.ts';
+import { createEntry, createRoutine, getWeek, updateEntry } from './week.ts';
 
 const NOW = '2026-11-25T14:10'; // Wednesday afternoon
 
@@ -28,6 +28,19 @@ test('sending a ticked task back to the inbox reopens it', () => {
   const back = updateEntry(db, task.id, { start: null }, NOW);
   assert.equal(back.status, 'open');
   assert.deepEqual(getWeek(db, '2026-11-23', NOW).inbox.map((e) => e.title), ['Groceries']);
+});
+
+test('impossible dates and times are rejected', () => {
+  const db = openDb(':memory:');
+  const task = (start: string) => () => createEntry(db, { kind: 'task', title: 'X', start, duration: 30 });
+  assert.throws(task('2026-02-30T09:00'), /CHECK constraint failed/); // 30 February
+  assert.throws(task('2026-11-31T09:00'), /CHECK constraint failed/); // 31 November
+  assert.throws(task('2026-11-25T24:00'), /CHECK constraint failed/);
+  assert.throws(
+    () => createRoutine(db, { kind: 'event', title: 'X', days: 'MTWTF..', at: '24:00', duration: 30 }, NOW),
+    /CHECK constraint failed/,
+  );
+  assert.equal(task('2026-11-25T23:45')().start, '2026-11-25T23:45');
 });
 
 test('writes reject read-only fields, wrong types and impossible changes', () => {
