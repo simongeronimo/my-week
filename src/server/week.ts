@@ -121,6 +121,8 @@ export function updateEntry(db: DB, id: number, body: unknown, now: string): Ent
   const old = one<Entry>(db, 'SELECT * FROM entries WHERE id = ?', [id]);
   if (!old) throw new HttpError(404, `No entry with id ${id}`);
   if (Object.keys(changes).length === 0) return old;
+  // Rule 6: back to the inbox means "not done yet", so a ticked task reopens instead of vanishing.
+  if (changes.start === null && old.kind === 'task' && !('status' in changes)) changes.status = 'open';
   // Rule 5: moving a task whose time had already passed counts as a migration.
   const moved = 'start' in changes && changes.start !== old.start;
   if (moved && old.kind === 'task' && old.start !== null && addMinutes(old.start, old.duration) <= now) {

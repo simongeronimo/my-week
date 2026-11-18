@@ -164,7 +164,7 @@ ORDER BY start;
 3. **Deleting a routine.** The server deletes the routine's open copies that start after now. Past copies stay, and `ON DELETE SET NULL` clears their `routine_id`.
 4. **Editing a routine.** Editing means deleting the routine and creating it again, so it follows rules 2 and 3.
 5. **Migration.** When a `PATCH` changes the `start` of a task (to a new time, or to empty for "back to inbox"), and that task's old end had already passed, the server adds 1 to `migrations`. The server applies the rule, so the desktop, the phone, and the agent all count the same way.
-6. **Back to inbox.** This sets `start` to empty and keeps `duration`. Only tasks can do it. For an event, the `CHECK` constraint rejects the change with a `400`.
+6. **Back to inbox.** This sets `start` to empty and keeps `duration`. A ticked task also goes back to `open`, because otherwise it would match no list and vanish. Only tasks can do it. For an event, the `CHECK` constraint rejects the change with a `400`.
 7. **Overdue.** Overdue isn't stored. A task is overdue when it shows up in the Unfinished query.
 
 ## Screens

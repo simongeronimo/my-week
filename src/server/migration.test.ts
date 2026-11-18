@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { openDb } from './db.ts';
-import { createEntry, updateEntry } from './week.ts';
+import { createEntry, getWeek, updateEntry } from './week.ts';
 
 const NOW = '2026-11-25T14:10'; // Wednesday afternoon
 
@@ -19,6 +19,15 @@ test('planning ahead is not a migration', () => {
   assert.equal(updateEntry(db, task.id, { start: '2026-11-26T18:00' }, NOW).migrations, 0); // inbox to week
   assert.equal(updateEntry(db, task.id, { start: '2026-11-27T18:00' }, NOW).migrations, 0); // future task moved
   assert.equal(updateEntry(db, task.id, { duration: 60 }, '2026-11-28T09:00').migrations, 0); // resized, same start
+});
+
+test('sending a ticked task back to the inbox reopens it', () => {
+  const db = openDb(':memory:');
+  const task = createEntry(db, { kind: 'task', title: 'Groceries', start: '2026-11-24T17:45', duration: 45 });
+  updateEntry(db, task.id, { status: 'done' }, NOW);
+  const back = updateEntry(db, task.id, { start: null }, NOW);
+  assert.equal(back.status, 'open');
+  assert.deepEqual(getWeek(db, '2026-11-23', NOW).inbox.map((e) => e.title), ['Groceries']);
 });
 
 test('writes reject read-only fields, wrong types and impossible changes', () => {
