@@ -51,6 +51,8 @@ test('the agent gets 403 for everything else, and nothing changes', async () => 
   }
   const week = (await (await me('GET', '/api/week?monday=2026-11-23')).json()) as WeekView;
   assert.deepEqual(week.inbox.map((e) => [e.title, e.status]), [['Mine', 'open']]);
+  assert.deepEqual(week.entries, []); // no event or timed task slipped in, even with a 403 reply
+  assert.deepEqual(await (await me('GET', '/api/routines')).json(), []);
 });
 
 test('without AGENT_TOKEN set, the agent token is just a wrong token', async () => {

@@ -20,8 +20,15 @@ test('the server refuses to start with a misspelled TZ', () => {
   assert.match(result.stderr, /TZ "Europe\/Berln"/);
 });
 
-test('the server refuses to start when two tokens are the same', () => {
-  const result = start({ APP_TOKEN: 'same', AGENT_TOKEN: 'same' });
-  assert.equal(result.status, 1);
-  assert.match(result.stderr, /must all be different/);
+test('the server refuses to start when any two tokens are the same', () => {
+  const pairs = [
+    { APP_TOKEN: 'same', AGENT_TOKEN: 'same' },
+    { APP_TOKEN: 'same', FEED_TOKEN: 'same' },
+    { AGENT_TOKEN: 'same', FEED_TOKEN: 'same' },
+  ];
+  for (const env of pairs) {
+    const result = start(env);
+    assert.equal(result.status, 1, Object.keys(env).join(' = '));
+    assert.match(result.stderr, /must all be different/);
+  }
 });
