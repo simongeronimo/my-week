@@ -3,7 +3,7 @@ import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import type { DropArg, EventResizeDoneArg } from '@fullcalendar/interaction';
-import type { DateSelectArg, EventClickArg, EventContentArg, EventDropArg, EventInput } from '@fullcalendar/core';
+import type { CalendarOptions, DateSelectArg, EventClickArg, EventContentArg, EventDropArg, EventInput } from '@fullcalendar/core';
 import type { Entry, WeekView } from '../shared/types.ts';
 import {
   USE_12_HOUR, addDays, addMinutes, formatDay, formatDuration, formatTime, fromDate, isoWeek, localNow,
@@ -35,6 +35,42 @@ function blockClasses(entry: Entry): string[] {
     overdue ? 'overdue' : past ? 'past' : '',
   ].filter(Boolean);
 }
+
+/** Entries as FullCalendar events, each carrying its entry for the block and the click handler. */
+export function toEvents(entries: Entry[]): EventInput[] {
+  return entries.map((entry) => ({
+    id: String(entry.id),
+    title: entry.title,
+    start: entry.start!,
+    end: addMinutes(entry.start!, entry.duration),
+    classNames: blockClasses(entry),
+    extendedProps: { entry },
+  }));
+}
+
+/** Saves a block dragged to a new time or resized, and puts it back if the save fails. */
+export function moveOrResize(save: Save, info: EventDropArg | EventResizeDoneArg) {
+  const { event } = info;
+  const entry = event.extendedProps.entry as Entry;
+  const changes = { start: fromDate(event.start!), duration: minutesBetween(event.start!, event.end!) };
+  save(api.updateEntry(entry.id, changes), info.revert);
+}
+
+/** Grid settings shared by the week page and the phone's day page. */
+export const gridOptions: CalendarOptions = {
+  plugins: [timeGridPlugin, interactionPlugin],
+  headerToolbar: false,
+  allDaySlot: false,
+  slotDuration: '00:30:00',
+  snapDuration: '00:15:00',
+  slotMinTime: '06:00:00',
+  slotMaxTime: '24:00:00',
+  height: '100%',
+  nowIndicator: true,
+  editable: true,
+  slotLabelFormat: { hour: 'numeric', minute: '2-digit', omitZeroMinute: true, hour12: USE_12_HOUR },
+  eventContent: (arg) => <Block arg={arg} />,
+};
 
 function Block({ arg }: { arg: EventContentArg }) {
   const { sig, title, migrations } = blockParts(arg.event.extendedProps.entry as Entry | undefined, arg.event.title);
@@ -104,24 +140,8 @@ export function Planner({ onAuthError }: { onAuthError: () => void }) {
     [fail, load],
   );
 
-  const events: EventInput[] = (week?.entries ?? []).map((entry) => ({
-    id: String(entry.id),
-    title: entry.title,
-    start: entry.start!,
-    end: addMinutes(entry.start!, entry.duration),
-    classNames: blockClasses(entry),
-    extendedProps: { entry },
-  }));
-
   function onDrop(info: DropArg) {
     save(api.updateEntry(Number(info.draggedEl.dataset.id), { start: fromDate(info.date) }));
-  }
-
-  function onMoveOrResize(info: EventDropArg | EventResizeDoneArg) {
-    const { event } = info;
-    const entry = event.extendedProps.entry as Entry;
-    const changes = { start: fromDate(event.start!), duration: minutesBetween(event.start!, event.end!) };
-    save(api.updateEntry(entry.id, changes), info.revert);
   }
 
   function onSelect(info: DateSelectArg) {
@@ -160,31 +180,20 @@ export function Planner({ onAuthError }: { onAuthError: () => void }) {
         <main className="grid">
           <FullCalendar
             ref={calendarRef}
-            plugins={[timeGridPlugin, interactionPlugin]}
+            {...gridOptions}
             initialView="timeGridWeek"
             initialDate={monday}
-            headerToolbar={false}
             firstDay={1}
-            allDaySlot={false}
-            slotDuration="00:30:00"
-            snapDuration="00:15:00"
-            slotMinTime="06:00:00"
-            slotMaxTime="24:00:00"
             scrollTime="07:00:00"
-            height="100%"
-            nowIndicator
-            editable
             selectable
             selectMinDistance={5}
             selectAllow={(span) => withinOneDay(span.start, span.end)}
             droppable
             dayHeaderContent={(arg) => `${formatDay(fromDate(arg.date))} ${arg.date.getDate()}`}
-            slotLabelFormat={{ hour: 'numeric', minute: '2-digit', omitZeroMinute: true, hour12: USE_12_HOUR }}
-            events={events}
-            eventContent={(arg) => <Block arg={arg} />}
+            events={toEvents(week?.entries ?? [])}
             drop={onDrop}
-            eventDrop={onMoveOrResize}
-            eventResize={onMoveOrResize}
+            eventDrop={(info) => moveOrResize(save, info)}
+            eventResize={(info) => moveOrResize(save, info)}
             select={onSelect}
             eventClick={onClick}
           />

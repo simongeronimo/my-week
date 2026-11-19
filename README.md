@@ -33,7 +33,7 @@ Dockge builds the image straight from this GitHub repo at a version tag, so the 
 To upgrade:
 1. Tag the new commit, for example `git tag v0.3.0`, and push the tag.
 2. Take a snapshot of the dataset.
-3. In the stack, change both `#v0.2.0` and `my-week:0.2.0` to the new version, and redeploy.
+3. In the stack, change both `#v0.3.0` and `my-week:0.3.0` to the new version, and redeploy.
 
 To roll back, restore the snapshot and change both versions back. Copying `/data` by hand while the app runs can catch a half-written file, so stop the container first if you copy by hand.
 
@@ -61,6 +61,8 @@ curl -s -X DELETE "$URL/api/routines/<id>" -H "Authorization: Bearer $TOKEN"
 4. Add Calendar's Up Next widget to the home screen.
 
 iOS decides when to refresh a subscribed calendar, so the widget can be up to an hour behind. The Today page is always current.
+
+To arrange a day on the phone, tap Arrange day on the Today page. Tap a task in the strip at the bottom, then tap a time on the grid. Long-press a block to drag it, and after the long press drag its bottom edge to change its length.
 
 ## Planner agent
 

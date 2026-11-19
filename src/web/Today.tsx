@@ -90,6 +90,7 @@ export function Today({ onAuthError }: { onAuthError: () => void }) {
           <ul className="rows">{view.later.map((e) => line(e))}</ul>
         </section>
       )}
+      <a className="btn primary arrange" href="/day">Arrange day</a>
       <div className="phone-links">
         <a className="btn" href="/inbox">Inbox ({weeks?.[0]?.inbox.length ?? 0})</a>
         <a className="btn" href="/inbox">Unfinished ({weeks?.[0]?.unfinished.length ?? 0})</a>

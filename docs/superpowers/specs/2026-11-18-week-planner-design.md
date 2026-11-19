@@ -230,6 +230,12 @@ Tapping a task's bullet ticks it. Tapping its title opens the phone's own `<inpu
 
 This page shows the same Unfinished and Inbox lists as the desktop panel. Each task has Strike and Delete buttons, plus a move button that uses the native date and time picker.
 
+### Phone day page (`/day`, added 19 November)
+
+The Today page links here as Arrange day. It is for planning the day in the morning and reshuffling it during the day. The header shows the date, with ← and → to step one day at a time and a Back link to `/today`. Below it is one day of the desktop grid, which opens an hour before now on today and at 7 am on other days. A strip at the bottom holds the unfinished and inbox tasks as chips you scroll sideways.
+
+Tap a chip to pick it, then tap a time to place it. While a task is picked, taps go through blocks, so a task can land on top of Work. A long press of 0.4 seconds drags a block, and after the long press its bottom edge resizes it. Tapping a block opens the same dialog as on the desktop. Creating events by tapping an empty time is left out; that stays on the desktop.
+
 ### Routines page (`/routines`, milestone 2)
 
 This page lists routines, each with a Delete button, above a form for kind, title, days (seven toggles), time, and duration. Edit means delete and create.
@@ -270,7 +276,7 @@ Every route under `/api` requires `Authorization: Bearer <token>`. Request and r
 | `GET /api/guide` | Returns `docs/agent-api.md` as `text/markdown`. |
 | `GET /calendar.ics?token=…` | Returns the feed. It uses `FEED_TOKEN` in the URL instead of a header. |
 
-Every other path serves the built frontend from `dist/`, with `index.html` as the fallback for `/today`, `/inbox`, and `/routines`.
+Every other path serves the built frontend from `dist/`, with `index.html` as the fallback for `/today`, `/inbox`, `/day`, and `/routines`.
 
 **Writes.** The server builds SQL only from an allowlist of columns. `POST /api/entries` accepts `kind`, `title`, `notes`, `start`, and `duration`. `PATCH` accepts `title`, `notes`, `start`, `duration`, and `status`. The server sets `id`, `migrations`, `routine_id`, and `created_by` itself. A key outside the allowlist gets a `400` that names the key.
 

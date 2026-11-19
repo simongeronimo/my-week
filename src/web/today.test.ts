@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { lineTime, timeRange, todayView, until } from './today.ts';
+import { lineTime, scrollTimeFor, timeRange, todayView, until } from './today.ts';
 import type { Entry } from '../shared/types.ts';
 
 const at = (id: number, start: string, duration: number, over: Partial<Entry> = {}): Entry => ({
@@ -55,4 +55,10 @@ test('the Now card shows its time range', () => {
 test('a line names the day when it is not today', () => {
   assert.equal(lineTime('2026-11-25T19:30', '2026-11-25T14:10'), '7:30 pm');
   assert.equal(lineTime('2026-11-26T08:00', '2026-11-25T21:00'), 'Thu 8:00 am');
+});
+
+test('the day grid opens an hour before now on today, and at 7 am on other days', () => {
+  assert.equal(scrollTimeFor('2026-11-25', '2026-11-25T14:10'), '13:00:00');
+  assert.equal(scrollTimeFor('2026-11-25', '2026-11-25T00:20'), '00:00:00'); // just after midnight
+  assert.equal(scrollTimeFor('2026-11-26', '2026-11-25T21:00'), '07:00:00'); // arranging tomorrow
 });

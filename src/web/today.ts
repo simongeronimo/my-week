@@ -32,6 +32,13 @@ export function timeRange(start: string, duration: number): string {
   return `${formatTime(start)} to ${formatTime(addMinutes(start, duration))}`;
 }
 
+/** Where the day grid opens: an hour before now on today, so what's coming is in view, and 7 am on other days. */
+export function scrollTimeFor(day: string, now: string): string {
+  if (day !== now.slice(0, 10)) return '07:00:00';
+  const hour = Math.max(0, Number(now.slice(11, 13)) - 1);
+  return `${String(hour).padStart(2, '0')}:00:00`;
+}
+
 /** The time from one wall-clock time to another, like '2h 50m'. */
 export function until(from: string, to: string): string {
   const minutes = Math.max(0, Math.round((Date.parse(`${to}:00Z`) - Date.parse(`${from}:00Z`)) / 60_000));

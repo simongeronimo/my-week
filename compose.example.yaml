@@ -2,8 +2,8 @@
 # Put APP_TOKEN, AGENT_TOKEN and FEED_TOKEN in the stack's .env file, each from: openssl rand -hex 32
 services:
   my-week:
-    build: https://github.com/simongeronimo/my-week.git#v0.2.0
-    image: my-week:0.2.0          # to upgrade, change this version and the #tag above together
+    build: https://github.com/simongeronimo/my-week.git#v0.3.0
+    image: my-week:0.3.0          # to upgrade, change this version and the #tag above together
     container_name: my-week
     restart: unless-stopped
     user: "568:568"               # TrueNAS apps user; must own the data folder

@@ -5,12 +5,14 @@ import { Planner } from './Planner.tsx';
 import { RoutinesPage } from './RoutinesPage.tsx';
 import { Today } from './Today.tsx';
 import { PhoneInbox } from './PhoneInbox.tsx';
+import { Day } from './Day.tsx';
 
 /** One page per path. Pages link with plain <a href> loads, so no router library is needed. */
 const PAGES: Record<string, ComponentType<{ onAuthError: () => void }>> = {
   '/routines': RoutinesPage,
   '/today': Today,
   '/inbox': PhoneInbox,
+  '/day': Day,
 };
 
 export function App() {
