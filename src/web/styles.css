@@ -11,7 +11,7 @@
   font-display: swap;
 }
 
-/* Direction A, "Dot grid". Light mode only in v1. */
+/* Direction A, "Dot grid". The dark colours are at the end of the file. */
 :root {
   --bg: #F3F3F0;
   --paper: #FBFBF9;
@@ -201,3 +201,22 @@ body:has(> .fc-event-dragging) .drawer-backdrop { display: none; } /* FullCalend
 .undo-bar span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .undo-bar .btn { flex: none; }
 
+/* Dark mode follows the phone or computer setting. Colours from the "Dot grid" mockup, plus a dark routine blue. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141416;
+    --paper: #1C1C1F;
+    --ink: #ECECEE;
+    --muted: #9C9CA3;
+    --line: #2E2E33;
+    --dot: #3A3A41;
+    --accent: #8EA2FF;
+    --on-accent: #10132A;
+    --over: #FF8A80;
+    --routine: #2A2E40;
+    --fc-highlight-color: rgb(142 162 255 / 0.16);
+    color-scheme: dark;
+  }
+  .entry-dialog::backdrop { background: rgb(0 0 0 / 0.5); } /* ::backdrop can't read the colour variables in every browser */
+  .drawer-backdrop { background: rgb(0 0 0 / 0.4); }
+}
