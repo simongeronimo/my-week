@@ -180,6 +180,8 @@ legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
 }
 .drawer.open { transform: none; visibility: visible; }
 body:has(> .fc-event-dragging) .drawer { transform: translateX(100%); } /* FullCalendar adds the dragged copy to <body> */
+.drawer-backdrop { position: fixed; inset: 0; z-index: 9; background: rgb(28 28 31 / 0.15); cursor: pointer; } /* tap outside the panel to close it */
+body:has(> .fc-event-dragging) .drawer-backdrop { display: none; } /* FullCalendar only drops where the grid is the topmost element */
 .drawer-top { display: flex; align-items: center; justify-content: space-between; }
 .drawer-top h2 { margin: 0; font-size: 15px; font-weight: 600; }
 .drawer .inbox { width: auto; overflow: visible; }

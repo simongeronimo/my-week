@@ -88,6 +88,7 @@ export function Day({ onAuthError }: { onAuthError: () => void }) {
           eventClick={(info) => setOpenEntry(info.event.extendedProps.entry as Entry)}
         />
       </div>
+      {panelOpen && <div className="drawer-backdrop" aria-hidden="true" onClick={() => setPanelOpen(false)} />}
       {/* Always mounted, so the panel's drag setup survives closing it; CSS slides it in and out. */}
       <div id="day-tasks" className={panelOpen ? 'drawer open' : 'drawer'}>
         <div className="drawer-top">
