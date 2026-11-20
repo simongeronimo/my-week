@@ -47,7 +47,7 @@ It has three users:
 1. An inbox panel with a quick-add form. You type a title and pick a duration chip: 15m, 30m, 45m, 1h, 1h 30m, or 2h.
 2. An "Unfinished" section above the inbox that lists open tasks whose time has passed.
 3. A Monday to Sunday week grid in 15-minute steps. You drag from the inbox or Unfinished onto the grid, move blocks, and resize them.
-4. Clicking a block offers Tick, Back to inbox, Strike, and Delete, plus editing the title and notes.
+4. Clicking a block offers Tick, Back to inbox, and Delete, plus editing the title and notes. (Strike was taken out of the app on 20 November. It hid a task everywhere with no way back. The API still accepts `cancelled`.)
 5. You create an event by dragging across an empty slot and typing a title.
 6. Routine copies appear on every week. You create the routines once with curl (see "Routines in milestone 1").
 7. Buttons for previous week, next week, and today. On Sundays the planner opens on next week.
@@ -206,7 +206,7 @@ FullCalendar settings:
 - The inbox and Unfinished lists use FullCalendar's `Draggable`. A drop fires `eventReceive`, which sends a `PATCH` with the new start.
 - `eventDrop` and `eventResize` send a `PATCH`. If the save fails, they call `info.revert()` and show a short message.
 - `select` opens a small title input and sends a `POST` for an event.
-- `eventClick` opens a small popover with Tick, Back to inbox, Strike, Delete, and the title and notes fields.
+- `eventClick` opens a small popover with Tick, Back to inbox, Delete, and the title and notes fields.
 - `eventContent` draws the signifier, the title, the time, and the migration count.
 
 ### Token screen
@@ -222,19 +222,21 @@ The page has these parts, from top to bottom:
 - A "Next" card with how long until it starts.
 - "Later today" as rows, each with the time, the signifier, the title, and a To inbox button for tasks.
 - Buttons for Inbox and Unfinished.
-- The quick-add form with 15m, 30m, and 1h chips.
+- The quick-add form with the same six duration chips as the desktop.
 
 Tapping a task's bullet ticks it. Tapping its title opens the phone's own `<input type="datetime-local">` to move it. Every touch target is at least 44px. A `<meta name="apple-mobile-web-app-capable">` tag and an `apple-touch-icon` let "Add to Home Screen" open the page without Safari's toolbar. The page gets its data from `GET /api/week` and works out now and next itself. If nothing is left today, "Next" shows the first entry tomorrow, and on Sundays the page also fetches next week for that.
 
 ### Phone inbox (`/inbox`, milestone 2)
 
-This page shows the same Unfinished and Inbox lists as the desktop panel. Each task has Strike and Delete buttons, plus a move button that uses the native date and time picker.
+This page shows the same Unfinished and Inbox lists as the desktop panel. Tapping a task's bullet ticks it, and each task has a Delete button. The header links to the day page as Arrange day, which is where tasks get a time.
 
 ### Phone day page (`/day`, added 19 November)
 
-The Today page links here as Arrange day. It is for planning the day in the morning and reshuffling it during the day. The header shows the date, with ← and → to step one day at a time and a Back link to `/today`. Below it is one day of the desktop grid, which opens an hour before now on today and at 7 am on other days. A strip at the bottom holds the unfinished and inbox tasks as chips you scroll sideways.
+The Today and Inbox pages link here as Arrange day. It is for planning the day in the morning and reshuffling it during the day. The header shows the date, with ← and → to step one day at a time, a Tasks button with the number of tasks to place, and a Back link to `/today`. Below it is one day of the desktop grid, which opens an hour before now on today and at 7 am on other days. Its 30-minute rows are 48px tall, twice the desktop's, so a 15-minute block has room for its title.
 
-Tap a chip to pick it, then tap a time to place it. While a task is picked, taps go through blocks, so a task can land on top of Work. A long press of 0.4 seconds drags a block, and after the long press its bottom edge resizes it. Tapping a block opens the same dialog as on the desktop. Creating events by tapping an empty time is left out; that stays on the desktop.
+Tasks opens a panel that slides over the grid from the right. It is the desktop's inbox panel, with quick add, Unfinished and Inbox. Holding a task for 0.3 seconds starts a drag, and the panel slides out of the way until the drop, so the whole grid is free to drop on. A long press of 0.4 seconds drags a block, and after the long press its bottom edge resizes it. Tapping a block opens the same dialog as on the desktop. Creating events by tapping an empty time is left out, and that stays on the desktop.
+
+The app has a web manifest with scope `/`, so the home screen app keeps every page inside the app. Without it, iOS opened pages other than the one added in a browser window inside the app.
 
 ### Routines page (`/routines`, milestone 2)
 
@@ -451,7 +453,7 @@ There are no UI tests in v1. This checklist is the acceptance test for milestone
 1. Open the planner on the PC. It shows the week of 23 November with routine copies on it.
 2. Add five tasks to the inbox and drag each one onto the grid. Resize one and move one.
 3. Create an event by dragging across an empty slot.
-4. Tick a task, send one back to the inbox, and strike one.
+4. Tick a task, send one back to the inbox, and delete one.
 5. Reload the page, then restart the container. Everything is still where you left it.
 
 ## What to learn

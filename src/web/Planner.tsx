@@ -56,6 +56,11 @@ export function moveOrResize(save: Save, info: EventDropArg | EventResizeDoneArg
   save(api.updateEntry(entry.id, changes), info.revert);
 }
 
+/** Saves an inbox task dropped on the grid, starting where it landed. */
+export function placeDropped(save: Save, info: DropArg) {
+  save(api.updateEntry(Number(info.draggedEl.dataset.id), { start: fromDate(info.date) }));
+}
+
 /** Grid settings shared by the week page and the phone's day page. */
 export const gridOptions: CalendarOptions = {
   plugins: [timeGridPlugin, interactionPlugin],
@@ -140,10 +145,6 @@ export function Planner({ onAuthError }: { onAuthError: () => void }) {
     [fail, load],
   );
 
-  function onDrop(info: DropArg) {
-    save(api.updateEntry(Number(info.draggedEl.dataset.id), { start: fromDate(info.date) }));
-  }
-
   function onSelect(info: DateSelectArg) {
     info.view.calendar.unselect();
     const title = window.prompt('New event')?.trim();
@@ -191,7 +192,7 @@ export function Planner({ onAuthError }: { onAuthError: () => void }) {
             droppable
             dayHeaderContent={(arg) => `${formatDay(fromDate(arg.date))} ${arg.date.getDate()}`}
             events={toEvents(week?.entries ?? [])}
-            drop={onDrop}
+            drop={(info) => placeDropped(save, info)}
             eventDrop={(info) => moveOrResize(save, info)}
             eventResize={(info) => moveOrResize(save, info)}
             select={onSelect}

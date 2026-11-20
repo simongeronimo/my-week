@@ -31,9 +31,9 @@ Dockge builds the image straight from this GitHub repo at a version tag, so the 
 6. Open the subdomain and paste your `APP_TOKEN`.
 
 To upgrade:
-1. Tag the new commit, for example `git tag v0.3.0`, and push the tag.
+1. Tag the new commit, for example `git tag v0.4.0`, and push the tag.
 2. Take a snapshot of the dataset.
-3. In the stack, change both `#v0.3.0` and `my-week:0.3.0` to the new version, and redeploy.
+3. In the stack, change both `#v0.4.0` and `my-week:0.4.0` to the new version, and redeploy.
 
 To roll back, restore the snapshot and change both versions back. Copying `/data` by hand while the app runs can catch a half-written file, so stop the container first if you copy by hand.
 
@@ -62,7 +62,9 @@ curl -s -X DELETE "$URL/api/routines/<id>" -H "Authorization: Bearer $TOKEN"
 
 iOS decides when to refresh a subscribed calendar, so the widget can be up to an hour behind. The Today page is always current.
 
-To arrange a day on the phone, tap Arrange day on the Today page. Tap a task in the strip at the bottom, then tap a time on the grid. Long-press a block to drag it, and after the long press drag its bottom edge to change its length.
+To arrange a day on the phone, tap Arrange day on the Today or Inbox page. Tap Tasks to open the task panel, hold a task for a moment, then drag it onto the grid. Long-press a block to move it, and after the long press drag its bottom edge to change its length.
+
+If you added my-week to the home screen before version 0.4.0, delete the icon and add it again from `/today`, then paste the token again. Older icons open other pages in a browser window inside the app.
 
 ## Planner agent
 

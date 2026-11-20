@@ -44,7 +44,6 @@ export function EntryDialog({ entry, save, onClose }: Props) {
           {isTask && entry.start && (
             <button type="button" className="btn" onClick={() => act(api.updateEntry(entry.id, { start: null }))}>Back to inbox</button>
           )}
-          <button type="button" className="btn" onClick={() => act(api.updateEntry(entry.id, { status: 'cancelled' }))}>Strike</button>
           <button
             type="button"
             className="btn"

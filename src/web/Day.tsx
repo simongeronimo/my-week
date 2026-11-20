@@ -1,20 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
-import type { DateClickArg } from '@fullcalendar/interaction';
 import type { Entry, WeekView } from '../shared/types.ts';
-import { addDays, formatDate, formatDuration, fromDate, mondayOf } from '../shared/time.ts';
+import { addDays, formatDate, mondayOf } from '../shared/time.ts';
 import { api } from './api.ts';
-import { gridOptions, moveOrResize, toEvents } from './Planner.tsx';
+import { gridOptions, moveOrResize, placeDropped, toEvents } from './Planner.tsx';
 import type { Save } from './Planner.tsx';
+import { InboxPanel } from './InboxPanel.tsx';
 import { EntryDialog } from './EntryDialog.tsx';
 import { ErrorBanner, browserNow, useErrors } from './page.tsx';
 import { scrollTimeFor } from './today.ts';
 
-/** The phone's arrange screen: one day of the grid, with inbox and unfinished tasks to tap into place. */
+/** The phone's arrange screen: one day of the grid, and a side panel of tasks to drag onto it. */
 export function Day({ onAuthError }: { onAuthError: () => void }) {
   const [day, setDay] = useState(() => browserNow().slice(0, 10));
   const [week, setWeek] = useState<WeekView | null>(null); // null until the first load arrives
-  const [picked, setPicked] = useState<Entry | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
   const [openEntry, setOpenEntry] = useState<Entry | null>(null);
   const { message, fail, clear } = useErrors(onAuthError);
   const calendarRef = useRef<FullCalendar>(null);
@@ -55,21 +55,7 @@ export function Day({ onAuthError }: { onAuthError: () => void }) {
     [fail, load],
   );
 
-  function onDateClick(info: DateClickArg) {
-    if (!picked) return;
-    setPicked(null);
-    save(api.updateEntry(picked.id, { start: fromDate(info.date) }));
-  }
-
-  const unfinished = week?.unfinished ?? [];
-  const inbox = week?.inbox ?? [];
-  const chip = (entry: Entry, over: boolean) => (
-    <li key={entry.id}>
-      <button type="button" className={over ? 'chip over' : 'chip'} onClick={() => setPicked(entry)}>
-        {entry.title} <span>{formatDuration(entry.duration)}</span>
-      </button>
-    </li>
-  );
+  const toPlace = week ? week.unfinished.length + week.inbox.length : 0;
 
   return (
     <main className="phone day">
@@ -78,11 +64,14 @@ export function Day({ onAuthError }: { onAuthError: () => void }) {
         <nav aria-label="Day navigation">
           <button type="button" className="btn" aria-label="Previous day" onClick={() => setDay(addDays(day, -1))}>←</button>
           <button type="button" className="btn" aria-label="Next day" onClick={() => setDay(addDays(day, 1))}>→</button>
+          <button type="button" className="btn primary" aria-expanded={panelOpen} aria-controls="day-tasks" onClick={() => setPanelOpen(!panelOpen)}>
+            Tasks {toPlace}
+          </button>
           <a className="btn" href="/today">Back</a>
         </nav>
       </header>
       <ErrorBanner message={message} onDismiss={clear} />
-      <div className={picked ? 'day-grid placing' : 'day-grid'}>
+      <div className="day-grid">
         <FullCalendar
           ref={calendarRef}
           {...gridOptions}
@@ -91,33 +80,22 @@ export function Day({ onAuthError }: { onAuthError: () => void }) {
           scrollTime={scrollTime}
           dayHeaders={false}
           eventLongPressDelay={400}
+          droppable
           events={toEvents(week?.entries ?? [])}
-          dateClick={onDateClick}
+          drop={(info) => placeDropped(save, info)}
           eventDrop={(info) => moveOrResize(save, info)}
           eventResize={(info) => moveOrResize(save, info)}
           eventClick={(info) => setOpenEntry(info.event.extendedProps.entry as Entry)}
         />
       </div>
-      <footer className="tray" aria-label="Tasks to place">
-        {picked ? (
-          <div className="tray-pick">
-            <span>Tap a time for <strong>{picked.title}</strong></span>
-            <button type="button" className="btn" onClick={() => setPicked(null)}>Cancel</button>
-          </div>
-        ) : week === null ? (
-          <p className="hint">Loading the week.</p>
-        ) : unfinished.length + inbox.length === 0 ? (
-          <p className="hint">Nothing to place. Add tasks from Today.</p>
-        ) : (
-          <>
-            <p className="hint">Tap a task, then a time. Long-press a block to move it.</p>
-            <ul className="tray-chips">
-              {unfinished.map((e) => chip(e, true))}
-              {inbox.map((e) => chip(e, false))}
-            </ul>
-          </>
-        )}
-      </footer>
+      {/* Always mounted, so the panel's drag setup survives closing it; CSS slides it in and out. */}
+      <div id="day-tasks" className={panelOpen ? 'drawer open' : 'drawer'}>
+        <div className="drawer-top">
+          <h2>Tasks</h2>
+          <button type="button" className="btn" onClick={() => setPanelOpen(false)}>Close</button>
+        </div>
+        <InboxPanel week={week} save={save} onOpen={setOpenEntry} />
+      </div>
       {openEntry && <EntryDialog entry={openEntry} save={save} onClose={() => setOpenEntry(null)} />}
     </main>
   );

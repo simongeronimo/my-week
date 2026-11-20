@@ -95,7 +95,7 @@ export function Today({ onAuthError }: { onAuthError: () => void }) {
         <a className="btn" href="/inbox">Inbox ({weeks?.[0]?.inbox.length ?? 0})</a>
         <a className="btn" href="/inbox">Unfinished ({weeks?.[0]?.unfinished.length ?? 0})</a>
       </div>
-      <QuickAdd durations={[15, 30, 60]} onAdd={(title, duration) => save(api.createEntry({ kind: 'task', title, duration }))} />
+      <QuickAdd onAdd={(title, duration) => save(api.createEntry({ kind: 'task', title, duration }))} />
     </main>
   );
 }

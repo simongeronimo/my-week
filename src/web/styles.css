@@ -142,9 +142,9 @@ legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
 .line:last-child { border-bottom: 0; }
 .line-main { display: flex; align-items: center; gap: 4px; min-height: 44px; }
 .line .time { width: 84px; flex: none; font-size: 12px; color: var(--muted); }
-.tick { width: 44px; height: 44px; flex: none; padding: 0; border: 0; background: none; font: 500 18px var(--mono); cursor: pointer; }
-.ev, .phone .sig { width: 44px; flex: none; text-align: center; font: 500 14px var(--mono); color: var(--muted); }
-.phone .sig.over { color: var(--over); }
+.tick { width: 44px; height: 44px; flex: none; padding: 0; border: 0; background: none; font: 500 28px/1 var(--mono); cursor: pointer; }
+.tick.over { color: var(--over); }
+.ev { width: 44px; flex: none; text-align: center; font: 500 20px/1 var(--mono); color: var(--muted); }
 .line-title { flex: 1; min-width: 0; min-height: 44px; display: flex; flex-direction: column; justify-content: center; padding: 0; border: 0; background: none; text-align: left; font-size: 15px; font-weight: 500; cursor: pointer; }
 .line-title .m { font: 400 11px var(--mono); color: var(--muted); }
 .line-title .m.over { color: var(--over); }
@@ -161,18 +161,27 @@ legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
 .token-screen input { height: 44px; font-size: 16px; } /* 16px stops iOS zooming in while you paste the token */
 .phone .arrange { justify-content: center; }
 
-/* Day page: header, grid and task strip fill the screen, so the strip stays under your thumb */
+.phone-top:has(> nav) { flex-wrap: wrap; align-items: center; }
+.phone-top nav { display: flex; gap: 6px; }
+
+/* Day page: header and grid fill the screen */
 .phone.day { height: 100dvh; gap: 10px; padding: 12px 16px max(12px, env(safe-area-inset-bottom)); }
-.day .phone-top { align-items: center; }
-.day nav { display: flex; gap: 6px; }
 .day-grid { flex: 1; min-height: 0; }
 .day-grid .fc { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; } /* a long press drags instead of selecting text */
-.placing .fc-timegrid-col:not(.fc-timegrid-axis) { background-color: var(--fc-highlight-color); }
-.placing .fc-timegrid-event-harness, .placing .fc-event { pointer-events: none; } /* taps reach the time under a block */
-.tray { flex: none; display: flex; flex-direction: column; }
-.tray .hint { margin: 0 0 6px; }
-.tray-chips { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px; overflow-x: auto; }
-.tray-chips .chip { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-color: var(--ink); background: var(--paper); font: 500 13px 'Geist', system-ui, sans-serif; }
-.tray-chips .chip span { font: 400 12px var(--mono); color: var(--muted); }
-.tray-chips .chip.over { border: 1.5px solid var(--over); }
-.tray-pick { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.day-grid .fc .fc-timegrid-slot { height: 48px; } /* twice the desktop's, so a 15-minute block is 24px and its title fits */
+
+/* Day page task panel: slides over the grid from the right, and out of the way while a task is dragged */
+.drawer {
+  position: fixed; inset: 0 0 0 auto; z-index: 10; width: min(320px, 85vw);
+  display: flex; flex-direction: column; gap: 14px; overflow-y: auto;
+  padding: max(12px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
+  border-left: 1px solid var(--ink); background: var(--bg);
+  transform: translateX(100%); visibility: hidden; transition: transform 0.2s ease-out, visibility 0.2s;
+}
+.drawer.open { transform: none; visibility: visible; }
+body:has(> .fc-event-dragging) .drawer { transform: translateX(100%); } /* FullCalendar adds the dragged copy to <body> */
+.drawer-top { display: flex; align-items: center; justify-content: space-between; }
+.drawer-top h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.drawer .inbox { width: auto; overflow: visible; }
+.drawer .item { min-height: 44px; align-items: center; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; } /* not on the drawer itself: iOS won't type into an input under user-select: none */
+@media (prefers-reduced-motion: reduce) { .drawer { transition: none; } }
