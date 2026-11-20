@@ -48,7 +48,7 @@ It has three users:
 2. An "Unfinished" section above the inbox that lists open tasks whose time has passed.
 3. A Monday to Sunday week grid in 15-minute steps. You drag from the inbox or Unfinished onto the grid, move blocks, and resize them.
 4. Clicking a block offers Tick, Back to inbox, and Delete, plus editing the title and notes. (Strike was taken out of the app on 20 November. It hid a task everywhere with no way back. The API still accepts `cancelled`.)
-5. You create an event by dragging across an empty slot and typing a title.
+5. You create an event by dragging across an empty slot and typing a title. A double click on an empty slot opens a dialog that adds a task there.
 6. Routine copies appear on every week. You create the routines once with curl (see "Routines in milestone 1").
 7. Buttons for previous week, next week, and today. On Sundays the planner opens on next week.
 8. A token screen that asks for `APP_TOKEN` once per browser.
@@ -62,9 +62,14 @@ It has three users:
 4. The calendar feed at `/calendar.ics`.
 5. The agent token and the agent guide at `/api/guide`.
 
+### Added on 20 November
+
+1. Letting go of a block while still moving it fast throws it away. It flies off, an undo bar shows for 5 seconds, and the entry is kept as cancelled so undo can bring it back.
+2. Ctrl+Z or Cmd+Z undoes grid changes one at a time (moves, resizes, throws, adds, ticks, and edits from the dialog) until the page reloads. There is no redo.
+3. Dark mode follows the device's light or dark setting.
+
 ### Later list (left out on purpose)
 
-- Dark mode. The mockups already contain dark color tokens.
 - All-day events, yearly repeats, and events that span several days
 - Importing other calendars
 - The agent placing blocks or proposing a whole week's arrangement
@@ -73,7 +78,7 @@ It has three users:
 - Groups (bullet journal collections), deadlines, priorities, and notes as their own entries
 - A future log (entries with a date but no time) and a month view
 - Ticking habits with streaks and stats
-- Using the phone offline, and undo
+- Using the phone offline
 - Calendar alerts in the feed
 - A Scriptable widget, if the calendar widget feels cluttered
 - Detecting conflicting edits from two devices
@@ -234,7 +239,7 @@ This page shows the same Unfinished and Inbox lists as the desktop panel. Tappin
 
 The Today and Inbox pages link here as Arrange day. It is for planning the day in the morning and reshuffling it during the day. The header shows the date, with ← and → to step one day at a time, a Tasks button with the number of tasks to place, and a Back link to `/today`. Below it is one day of the desktop grid, which opens an hour before now on today and at 7 am on other days. Its 30-minute rows are 48px tall, twice the desktop's, so a 15-minute block has room for its title.
 
-Tasks opens a panel that slides over the grid from the right. It is the desktop's inbox panel, with quick add, Unfinished and Inbox. Holding a task for 0.3 seconds starts a drag, and the panel slides out of the way until the drop, so the whole grid is free to drop on. A long press of 0.4 seconds drags a block, and after the long press its bottom edge resizes it. Tapping a block opens the same dialog as on the desktop. Creating events by tapping an empty time is left out, and that stays on the desktop.
+Tasks opens a panel that slides over the grid from the right. It is the desktop's inbox panel, with quick add, Unfinished and Inbox. Holding a task for 0.3 seconds starts a drag, and the panel slides out of the way until the drop, so the whole grid is free to drop on. A long press of 0.4 seconds drags a block, and after the long press its bottom edge resizes it. Tapping a block opens the same dialog as on the desktop. A double tap on an empty time opens the new task dialog. Creating events by dragging across empty time stays on the desktop. Throwing a block away works as on the desktop.
 
 The app has a web manifest with scope `/`, so the home screen app keeps every page inside the app. Without it, iOS opened pages other than the one added in a browser window inside the app.
 

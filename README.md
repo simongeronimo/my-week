@@ -71,7 +71,9 @@ curl -s -X DELETE "$URL/api/routines/<id>" -H "Authorization: Bearer $TOKEN"
 
 iOS decides when to refresh a subscribed calendar, so the widget can be up to an hour behind. The Today page is always current.
 
-To arrange a day on the phone, tap Arrange day on the Today or Inbox page. Tap Tasks to open the task panel, hold a task for a moment, then drag it onto the grid. Long-press a block to move it, and after the long press drag its bottom edge to change its length.
+To arrange a day on the phone, tap Arrange day on the Today or Inbox page. Tap Tasks to open the task panel, hold a task for a moment, then drag it onto the grid. Long-press a block to move it, and after the long press drag its bottom edge to change its length. Double-tap an empty time to add a task there.
+
+On either grid, fling a block away fast to delete it, and tap Undo if you didn't mean it. On a computer, double-click an empty time to add a task, and Ctrl+Z (Cmd+Z on a Mac) undoes your last changes on the grid. Dark mode follows your device's setting.
 
 If you added my-week to the home screen before version 0.4.0, delete the icon and add it again from `/today`, then paste the token again. Older icons open other pages in a browser window inside the app.
 
