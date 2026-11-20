@@ -77,6 +77,7 @@ It has three users:
 - Calendar alerts in the feed
 - A Scriptable widget, if the calendar widget feels cluttered
 - Detecting conflicting edits from two devices
+- Choosing colours: one per routine, or one per project for tasks (projects would be new)
 - A health check endpoint
 - Rewriting the server in Rust
 
