@@ -77,7 +77,6 @@ It has three users:
 - Calendar alerts in the feed
 - A Scriptable widget, if the calendar widget feels cluttered
 - Detecting conflicting edits from two devices
-- Building images with GitHub Actions and pushing them to GHCR
 - A health check endpoint
 - Rewriting the server in Rust
 
@@ -375,7 +374,7 @@ my-week/
 
 ## Deployment
 
-**Image.** You build the image on the server with a version tag. Tag the same commit in git (`git tag v0.1.0`).
+**Image.** Since 20 November (v0.4.1), pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`, which builds the image for linux/amd64 and pushes `ghcr.io/simongeronimo/my-week` tagged with the version and `stable`. Dockge pulls `:stable`. Before that, the image was built on the server:
 
 ```sh
 docker build -t my-week:0.1.0 .

@@ -16,7 +16,7 @@ npm run dev:web                          # UI on http://localhost:5173, sends /a
 
 ## Deploy on TrueNAS with Dockge
 
-Dockge builds the image straight from this GitHub repo at a version tag, so the server needs no clone.
+Dockge pulls the image `ghcr.io/simongeronimo/my-week:stable` from GitHub's container registry, so the server needs no clone and builds nothing.
 
 1. Create a dataset for the data, for example `/mnt/tank/apps/my-week`, owned by user and group 568.
 2. In Dockge, create a stack named `my-week` and paste `compose.example.yaml`. Change the dataset path, `TZ`, and the network name if Nginx Proxy Manager uses another one.
@@ -26,16 +26,25 @@ Dockge builds the image straight from this GitHub repo at a version tag, so the 
    AGENT_TOKEN=...    # the planner agent
    FEED_TOKEN=...     # the calendar feed
    ```
-4. Deploy. The first build downloads Node and the packages, so it takes a few minutes. The log ends with `my-week listening on port 3000`.
+4. Deploy. The log ends with `my-week listening on port 3000`.
 5. In Nginx Proxy Manager, add a proxy host for your subdomain that points at `http://my-week:3000`, with a Let's Encrypt certificate.
 6. Open the subdomain and paste your `APP_TOKEN`.
 
-To upgrade:
-1. Tag the new commit, for example `git tag v0.4.0`, and push the tag.
-2. Take a snapshot of the dataset.
-3. In the stack, change both `#v0.4.0` and `my-week:0.4.0` to the new version, and redeploy.
+To release a new version, push a `vX.Y.Z` tag:
 
-To roll back, restore the snapshot and change both versions back. Copying `/data` by hand while the app runs can catch a half-written file, so stop the container first if you copy by hand.
+```sh
+git tag v0.5.0
+git push origin v0.5.0
+```
+
+The Release workflow in `.github/workflows/release.yml` then builds the image and pushes it with two tags: the version without the v (`0.5.0`) and `stable`. Pushes to main publish nothing.
+
+To upgrade the server:
+1. Wait for the Release workflow to finish on GitHub.
+2. Take a snapshot of the dataset.
+3. In Dockge, open the stack and click Update. Dockge pulls the new `stable` image and restarts the container.
+
+To roll back, restore the snapshot and set the image to the old version, for example `ghcr.io/simongeronimo/my-week:0.4.1`. Version 0.4.1 is the first one on GHCR. Copying `/data` by hand while the app runs can catch a half-written file, so stop the container first if you copy by hand.
 
 ## Routines
 

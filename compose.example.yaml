@@ -1,9 +1,8 @@
-# Dockge stack for my-week. Dockge builds the image straight from GitHub at the tag below.
+# Dockge stack for my-week. Dockge pulls the published image from GitHub's container registry.
 # Put APP_TOKEN, AGENT_TOKEN and FEED_TOKEN in the stack's .env file, each from: openssl rand -hex 32
 services:
   my-week:
-    build: https://github.com/simongeronimo/my-week.git#v0.4.0
-    image: my-week:0.4.0          # to upgrade, change this version and the #tag above together
+    image: ghcr.io/simongeronimo/my-week:stable   # or pin a version, for example :0.4.1
     container_name: my-week
     restart: unless-stopped
     user: "568:568"               # TrueNAS apps user; must own the data folder
