@@ -3,8 +3,7 @@ import FullCalendar from '@fullcalendar/react';
 import type { Entry, WeekView } from '../shared/types.ts';
 import { addDays, formatDate, mondayOf } from '../shared/time.ts';
 import { api } from './api.ts';
-import { gridOptions, moveOrResize, placeDropped, toEvents } from './Planner.tsx';
-import type { Save } from './Planner.tsx';
+import { gridOptions, placeDropped, toEvents, useGridExtras, useSave } from './Planner.tsx';
 import { InboxPanel } from './InboxPanel.tsx';
 import { EntryDialog } from './EntryDialog.tsx';
 import { ErrorBanner, browserNow, useErrors } from './page.tsx';
@@ -41,19 +40,8 @@ export function Day({ onAuthError }: { onAuthError: () => void }) {
     calendarRef.current?.getApi().gotoDate(day);
   }, [day]);
 
-  /** Sends a change, puts the block back if it fails, and reloads the week either way. */
-  const save: Save = useCallback(
-    async (change, revert) => {
-      try {
-        await change;
-      } catch (err) {
-        revert?.();
-        fail(err);
-      }
-      await load();
-    },
-    [fail, load],
-  );
+  const { save, undo } = useSave(load, fail);
+  const { calendarProps, overlays } = useGridExtras(save, undo, setWeek);
 
   const toPlace = week ? week.unfinished.length + week.inbox.length : 0;
 
@@ -83,8 +71,7 @@ export function Day({ onAuthError }: { onAuthError: () => void }) {
           droppable
           events={toEvents(week?.entries ?? [])}
           drop={(info) => placeDropped(save, info)}
-          eventDrop={(info) => moveOrResize(save, info)}
-          eventResize={(info) => moveOrResize(save, info)}
+          {...calendarProps}
           eventClick={(info) => setOpenEntry(info.event.extendedProps.entry as Entry)}
         />
       </div>
@@ -98,6 +85,7 @@ export function Day({ onAuthError }: { onAuthError: () => void }) {
         <InboxPanel week={week} save={save} onOpen={setOpenEntry} />
       </div>
       {openEntry && <EntryDialog entry={openEntry} save={save} onClose={() => setOpenEntry(null)} />}
+      {overlays}
     </main>
   );
 }

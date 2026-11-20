@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -12,9 +13,11 @@ import {
 import { AuthError, api } from './api.ts';
 import { InboxPanel } from './InboxPanel.tsx';
 import { blockParts, withinOneDay } from './block.ts';
-import { EntryDialog } from './EntryDialog.tsx';
+import { EntryDialog, NewTaskDialog } from './EntryDialog.tsx';
+import { isUndoKey, useDoubleTap, useThrowAway } from './gestures.ts';
 
-export type Save = (change: Promise<unknown>, revert?: () => void) => Promise<void>;
+/** Sends a change. revert puts the grid back if it fails; reverse, if given, is how Ctrl+Z undoes it. */
+export type Save = (change: Promise<unknown>, revert?: () => void, reverse?: () => Promise<unknown>) => Promise<void>;
 
 const browserNow = () => localNow(Intl.DateTimeFormat().resolvedOptions().timeZone);
 
@@ -52,13 +55,104 @@ export function toEvents(entries: Entry[]): EventInput[] {
 export function moveOrResize(save: Save, info: EventDropArg | EventResizeDoneArg) {
   const { event } = info;
   const entry = event.extendedProps.entry as Entry;
+  const { oldEvent } = info;
   const changes = { start: fromDate(event.start!), duration: minutesBetween(event.start!, event.end!) };
-  save(api.updateEntry(entry.id, changes), info.revert);
+  const before = { start: fromDate(oldEvent.start!), duration: minutesBetween(oldEvent.start!, oldEvent.end!) };
+  save(api.updateEntry(entry.id, changes), info.revert, () => api.updateEntry(entry.id, before));
 }
 
 /** Saves an inbox task dropped on the grid, starting where it landed. */
 export function placeDropped(save: Save, info: DropArg) {
-  save(api.updateEntry(Number(info.draggedEl.dataset.id), { start: fromDate(info.date) }));
+  const { id, start } = info.draggedEl.dataset; // start is empty for an inbox task, a past time for an unfinished one
+  save(api.updateEntry(Number(id), { start: fromDate(info.date) }), undefined, () => api.updateEntry(Number(id), { start: start || null }));
+}
+
+/**
+ * Saving for the grid pages: sends a change, puts the block back if it fails, reloads the week,
+ * and remembers how to reverse it. Ctrl+Z or Cmd+Z reverses the last change, then the one before.
+ */
+export function useSave(load: () => Promise<unknown>, fail: (err: unknown) => void) {
+  const steps = useRef<Array<() => Promise<unknown>>>([]); // ponytail: forgotten on reload, and no redo; add redo if you miss it
+  const save: Save = useCallback(
+    async (change, revert, reverse) => {
+      try {
+        await change;
+        if (reverse) steps.current.push(reverse);
+      } catch (err) {
+        revert?.();
+        fail(err);
+      }
+      await load();
+    },
+    [fail, load],
+  );
+  const undo = useCallback(() => {
+    const step = steps.current.pop();
+    if (step) save(step());
+  }, [save]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const typing = e.target instanceof Element && e.target.closest('input, textarea, select, [contenteditable]') !== null;
+      if (!isUndoKey(e, typing)) return;
+      e.preventDefault();
+      undo();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [undo]);
+
+  return { save, undo };
+}
+
+/**
+ * What the week page and the day page share on top of the grid: throwing a block away, double-click
+ * or double-tap to add a task, and the undo bar after a throw. Spread calendarProps on FullCalendar
+ * and render overlays after it.
+ */
+export function useGridExtras(save: Save, undo: () => void, setWeek: Dispatch<SetStateAction<WeekView | null>>) {
+  const [thrown, setThrown] = useState<{ title: string; at: number } | null>(null);
+  const [newAt, setNewAt] = useState<Date | null>(null);
+
+  const throwing = useThrowAway((entry) => {
+    setWeek((w) => w && { ...w, entries: w.entries.filter((e) => e.id !== entry.id) }); // gone at once, not after the reload
+    // Thrown blocks are hidden as cancelled, not erased, so undo can always bring them back.
+    save(api.updateEntry(entry.id, { status: 'cancelled' }), undefined, () => api.updateEntry(entry.id, { status: entry.status }));
+    setThrown({ title: entry.title, at: Date.now() });
+  });
+  const dateClick = useDoubleTap(setNewAt);
+
+  const calendarProps = {
+    eventDragStart: throwing.eventDragStart,
+    eventDragStop: throwing.eventDragStop,
+    eventDrop: (info: EventDropArg) => (throwing.wasThrown(info.event.id) ? info.event.remove() : moveOrResize(save, info)),
+    eventResize: (info: EventResizeDoneArg) => moveOrResize(save, info),
+    dateClick,
+  };
+  const overlays = (
+    <>
+      {thrown && (
+        // ponytail: Undo here reverses the last change, which is the throw unless you change something else within 5 seconds
+        <UndoBar key={thrown.at} text={`Threw away "${thrown.title}"`} onUndo={() => { undo(); setThrown(null); }} onDone={() => setThrown(null)} />
+      )}
+      {newAt && <NewTaskDialog start={newAt} save={save} onClose={() => setNewAt(null)} />}
+    </>
+  );
+  return { calendarProps, overlays };
+}
+
+/** A short-lived bar with an Undo button, for the phone, which has no Ctrl+Z. */
+function UndoBar({ text, onUndo, onDone }: { text: string; onUndo: () => void; onDone: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onDone, 5000);
+    return () => clearTimeout(timer);
+  }, []); // once per bar: each throw remounts it through its key
+  return (
+    <div className="undo-bar" role="status">
+      <span>{text}</span>
+      <button type="button" className="btn" onClick={onUndo}>Undo</button>
+    </div>
+  );
 }
 
 /** Grid settings shared by the week page and the phone's day page. */
@@ -131,25 +225,15 @@ export function Planner({ onAuthError }: { onAuthError: () => void }) {
     return () => window.removeEventListener('focus', load);
   }, [load]);
 
-  /** Sends a change, puts the block back if it fails, and reloads the week either way. */
-  const save: Save = useCallback(
-    async (change, revert) => {
-      try {
-        await change;
-      } catch (err) {
-        revert?.();
-        fail(err);
-      }
-      await load();
-    },
-    [fail, load],
-  );
+  const { save, undo } = useSave(load, fail);
+  const { calendarProps, overlays } = useGridExtras(save, undo, setWeek);
 
   function onSelect(info: DateSelectArg) {
     info.view.calendar.unselect();
     const title = window.prompt('New event')?.trim();
     if (!title) return;
-    save(api.createEntry({ kind: 'event', title, start: fromDate(info.start), duration: minutesBetween(info.start, info.end) }));
+    const created = api.createEntry({ kind: 'event', title, start: fromDate(info.start), duration: minutesBetween(info.start, info.end) });
+    save(created, undefined, async () => api.deleteEntry((await created).id));
   }
 
   function onClick(info: EventClickArg) {
@@ -193,14 +277,14 @@ export function Planner({ onAuthError }: { onAuthError: () => void }) {
             dayHeaderContent={(arg) => `${formatDay(fromDate(arg.date))} ${arg.date.getDate()}`}
             events={toEvents(week?.entries ?? [])}
             drop={(info) => placeDropped(save, info)}
-            eventDrop={(info) => moveOrResize(save, info)}
-            eventResize={(info) => moveOrResize(save, info)}
+            {...calendarProps}
             select={onSelect}
             eventClick={onClick}
           />
         </main>
       </div>
       {openEntry && <EntryDialog entry={openEntry} save={save} onClose={() => setOpenEntry(null)} />}
+      {overlays}
     </div>
   );
 }

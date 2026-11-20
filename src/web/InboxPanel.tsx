@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Draggable } from '@fullcalendar/interaction';
 import type { Entry, WeekView } from '../shared/types.ts';
 import { formatDuration } from '../shared/time.ts';
@@ -29,7 +29,12 @@ export function InboxPanel({ week, save, onOpen }: Props) {
 
   return (
     <aside className="inbox" ref={ref} aria-label="Inbox">
-      <QuickAdd onAdd={(title, duration) => save(api.createEntry({ kind: 'task', title, duration }))} />
+      <QuickAdd
+        onAdd={(title, duration) => {
+          const created = api.createEntry({ kind: 'task', title, duration });
+          save(created, undefined, async () => api.deleteEntry((await created).id));
+        }}
+      />
       {unfinished.length > 0 && (
         <section>
           <h2>Unfinished <span className="count">{unfinished.length}</span></h2>
@@ -53,7 +58,7 @@ export function InboxPanel({ week, save, onOpen }: Props) {
 function Item({ entry, unfinished = false, onOpen }: { entry: Entry; unfinished?: boolean; onOpen: (entry: Entry) => void }) {
   const meta = itemMeta(entry, unfinished);
   return (
-    <li className={unfinished ? 'item unf' : 'item'} data-id={entry.id} data-title={entry.title} data-duration={entry.duration}>
+    <li className={unfinished ? 'item unf' : 'item'} data-id={entry.id} data-title={entry.title} data-duration={entry.duration} data-start={entry.start ?? ''}>
       <span className="sig" aria-hidden="true">•</span>
       <button type="button" className="item-body" onClick={() => onOpen(entry)}>
         <span className="t">{entry.title}</span>
@@ -64,7 +69,10 @@ function Item({ entry, unfinished = false, onOpen }: { entry: Entry; unfinished?
   );
 }
 
-export function QuickAdd({ onAdd }: { onAdd: (title: string, duration: number) => void }) {
+type QuickAddProps = { onAdd: (title: string, duration: number) => void; label?: string; submit?: string; onCancel?: () => void };
+
+export function QuickAdd({ onAdd, label = 'New task', submit = 'Add to inbox', onCancel }: QuickAddProps) {
+  const id = useId(); // the week page can show two of these at once: the inbox's and the new task dialog's
   const [title, setTitle] = useState('');
   const [duration, setDuration] = useState(30);
   return (
@@ -78,8 +86,8 @@ export function QuickAdd({ onAdd }: { onAdd: (title: string, duration: number) =
         setTitle('');
       }}
     >
-      <label htmlFor="new-task">New task</label>
-      <input id="new-task" value={title} onChange={(e) => setTitle(e.target.value)} autoComplete="off" required />
+      <label htmlFor={id}>{label}</label>
+      <input id={id} value={title} onChange={(e) => setTitle(e.target.value)} autoComplete="off" required />
       <div className="chips" role="group" aria-label="Duration">
         {DURATIONS.map((d) => (
           <button key={d} type="button" className={d === duration ? 'chip on' : 'chip'} aria-pressed={d === duration} onClick={() => setDuration(d)}>
@@ -87,7 +95,14 @@ export function QuickAdd({ onAdd }: { onAdd: (title: string, duration: number) =
           </button>
         ))}
       </div>
-      <button type="submit" className="btn primary">Add to inbox</button>
+      {onCancel ? (
+        <div className="actions end">
+          <button type="button" className="btn" onClick={onCancel}>Cancel</button>
+          <button type="submit" className="btn primary">{submit}</button>
+        </div>
+      ) : (
+        <button type="submit" className="btn primary">{submit}</button>
+      )}
     </form>
   );
 }
