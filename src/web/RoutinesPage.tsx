@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Kind, NewRoutine, Routine } from '../shared/types.ts';
 import { formatDuration, formatTime } from '../shared/time.ts';
 import { api } from './api.ts';
-import { DAY_LETTERS, DAY_NAMES, daysLabel, daysPattern } from './routines.ts';
+import { DAY_LETTERS, DAY_NAMES, daysLabel, daysPattern, minutesUntil } from './routines.ts';
 import { ErrorBanner, useErrors } from './page.tsx';
 
 export function RoutinesPage({ onAuthError }: { onAuthError: () => void }) {
@@ -66,15 +66,18 @@ function RoutineForm({ onAdd }: { onAdd: (routine: NewRoutine) => Promise<boolea
   const [title, setTitle] = useState('');
   const [days, setDays] = useState([true, true, true, true, true, false, false]);
   const [at, setAt] = useState('08:00');
+  const [byEnd, setByEnd] = useState(false); // true: type an end time instead of minutes
   const [duration, setDuration] = useState(60);
+  const [end, setEnd] = useState('17:00');
+  const minutes = byEnd ? minutesUntil(at, end) : duration;
 
   return (
     <form
       className="quick-add routine-form"
       onSubmit={async (e) => {
         e.preventDefault();
-        if (!title.trim() || !days.some(Boolean)) return;
-        const added = await onAdd({ kind, title: title.trim(), days: daysPattern(days), at, duration });
+        if (!title.trim() || !days.some(Boolean) || minutes === 0) return;
+        const added = await onAdd({ kind, title: title.trim(), days: daysPattern(days), at, duration: minutes });
         if (added) setTitle(''); // keep what you typed when the save fails
       }}
     >
@@ -105,16 +108,36 @@ function RoutineForm({ onAdd }: { onAdd: (routine: NewRoutine) => Promise<boolea
           </button>
         ))}
       </fieldset>
+      <fieldset className="chips">
+        <legend>Length</legend>
+        {[false, true].map((on) => (
+          <button key={String(on)} type="button" className={on === byEnd ? 'chip on' : 'chip'} aria-pressed={on === byEnd} onClick={() => setByEnd(on)}>
+            {on ? 'End time' : 'Minutes'}
+          </button>
+        ))}
+      </fieldset>
       <div className="row2">
         <div>
-          <label htmlFor="routine-at">Time</label>
+          <label htmlFor="routine-at">Starts at</label>
           <input id="routine-at" type="time" value={at} onChange={(e) => setAt(e.target.value)} required />
         </div>
-        <div>
-          <label htmlFor="routine-duration">Minutes</label>
-          <input id="routine-duration" type="number" min={5} max={1440} step={5} value={duration} onChange={(e) => setDuration(Number(e.target.value))} required />
-        </div>
+        {byEnd ? (
+          <div>
+            <label htmlFor="routine-end">Ends at</label>
+            <input id="routine-end" type="time" value={end} onChange={(e) => setEnd(e.target.value)} required />
+          </div>
+        ) : (
+          <div>
+            <label htmlFor="routine-duration">Minutes</label>
+            <input id="routine-duration" type="number" min={5} max={1440} step={5} value={duration} onChange={(e) => setDuration(Number(e.target.value))} required />
+          </div>
+        )}
       </div>
+      {byEnd && (
+        <p className="hint">
+          {minutes === 0 ? 'The end time is the same as the start. Pick a different one.' : `Lasts ${formatDuration(minutes)}${end < at ? ', ending the next morning' : ''}.`}
+        </p>
+      )}
       <button type="submit" className="btn primary">Add routine</button>
     </form>
   );

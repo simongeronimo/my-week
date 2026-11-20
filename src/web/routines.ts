@@ -14,3 +14,9 @@ export function daysLabel(pattern: string): string {
   if (inARow) return `${DAY_NAMES[on[0]]} to ${DAY_NAMES[on.at(-1)!]}`;
   return on.map((day) => DAY_NAMES[day]).join(', ');
 }
+
+/** Minutes from '09:00' to '17:00' (480). An end before the start means the next morning: '23:00' to '07:00' is 480. */
+export function minutesUntil(at: string, end: string): number {
+  const toMinutes = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+  return (toMinutes(end) - toMinutes(at) + 1440) % 1440;
+}
