@@ -22,7 +22,7 @@
   --accent: #2D4BD0;
   --on-accent: #F7F8FF;
   --over: #B3261E;
-  --routine: #E8E8E3;
+  --routine: #D6DBF2; /* light accent blue, so routine events read as real plans, not greyed out */
   --radius: 3px;
   --mono: 'Geist Mono', ui-monospace, monospace;
 
@@ -92,10 +92,11 @@ label { font-size: 12px; font-weight: 600; }
 .fc .fc-v-event .fc-event-main { padding: 0; color: inherit; }
 .fc .k-task { background: var(--paper); border: 1px solid var(--ink); color: var(--ink); }
 .fc .k-event { background: var(--ink); border: 1px solid var(--ink); color: var(--paper); }
-.fc .routine { background: var(--routine); border-color: var(--routine); color: var(--muted); }
+.fc .routine { background: var(--routine); border-color: var(--accent); color: var(--ink); }
 .fc .k-task.routine { background: transparent; border: 1px dashed var(--muted); color: var(--ink); }
 .fc .done .ttl { text-decoration: line-through; }
-.fc .done, .fc .past { opacity: 0.55; }
+.fc .past { opacity: 0.75; }
+.fc .done { opacity: 0.55; }
 .fc .fc-v-event.overdue { border: 1.5px solid var(--over); } /* beats .k-task.routine, so overdue habits turn red too */
 .fc .overdue .sig, .fc .overdue .ttl { color: var(--over); }
 .blk { height: 100%; overflow: hidden; padding: 3px 6px; }
