@@ -71,9 +71,11 @@ curl -s -X DELETE "$URL/api/routines/<id>" -H "Authorization: Bearer $TOKEN"
 
 iOS decides when to refresh a subscribed calendar, so the widget can be up to an hour behind. The Today page is always current.
 
-To arrange a day on the phone, tap Arrange day on the Today or Inbox page. Tap Tasks to open the task panel, hold a task for a moment, then drag it onto the grid. Long-press a block to move it, and after the long press drag its bottom edge to change its length. Double-tap an empty time to add a task there.
+The Today page lists your day. Tap a box to tick a task, and tap a title to open it. To move something, hold its row for a moment, then drag. While you drag, the list turns into a timeline of the day, and it turns back into a list when you let go. The + button adds a task to the inbox. The tray icon opens the inbox, and its count turns red when a task is overdue.
 
-On either grid, fling a block away fast to delete it, and tap Undo if you didn't mean it. On a computer, double-click an empty time to add a task, and Ctrl+Z (Cmd+Z on a Mac) undoes your last changes on the grid. Dark mode follows your device's setting. To give a task a description, tap Add description when you create it, or open the task later and type in the Description box.
+To arrange a day on the phone, tap the four squares on the Today page, or Arrange day on the Inbox page. Tap Tasks to open the task panel, hold a task for a moment, then drag it onto the grid. Long-press a block to move it, and after the long press drag its bottom edge to change its length. Double-tap an empty time to add a task there.
+
+On either grid, tap a task's box to tick it, and fling a block away fast to delete it, and tap Undo if you didn't mean it. On a computer, double-click an empty time to add a task, and Ctrl+Z (Cmd+Z on a Mac) undoes your last changes on the grid. Dark mode follows your device's setting. To give a task a description, tap Add description when you create it, or open the task later and type in the Description box.
 
 If you added my-week to the home screen before version 0.4.0, delete the icon and add it again from `/today`, then paste the token again. Older icons open other pages in a browser window inside the app.
 

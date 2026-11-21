@@ -45,8 +45,8 @@ It has three users:
 ### Milestone 1: desktop planning, ready by Sunday 22 November
 
 1. An inbox panel with a quick-add form. You type a title and pick a duration chip: 15m, 30m, 45m, 1h, 1h 30m, or 2h.
-2. An "Unfinished" section above the inbox that lists open tasks whose time has passed.
-3. A Monday to Sunday week grid in 15-minute steps. You drag from the inbox or Unfinished onto the grid, move blocks, and resize them.
+2. An "Overdue" section above the inbox that lists open tasks whose time has passed.
+3. A Monday to Sunday week grid in 15-minute steps. You drag from the inbox or Overdue onto the grid, move blocks, and resize them.
 4. Clicking a block offers Tick, Back to inbox, and Delete, plus editing the title and description. (Strike was taken out of the app on 20 November. It hid a task everywhere with no way back. The API still accepts `cancelled`.)
 5. You create an event by dragging across an empty slot and typing a title. A double click on an empty slot opens a dialog that adds a task there.
 6. Routine copies appear on every week. You create the routines once with curl (see "Routines in milestone 1").
@@ -57,7 +57,7 @@ It has three users:
 ### Milestone 2: phone, widget, and agent, during the week of 23 November
 
 1. A phone today page at `/today` showing now, next, and later today. It lets you tick a task, send it back to the inbox, move it with the phone's own date and time picker, and quick-add a task.
-2. Phone inbox and unfinished lists at `/inbox`.
+2. Phone inbox and overdue lists at `/inbox`.
 3. A routines page at `/routines` with a list and a form. Editing a routine deletes it and creates it again.
 4. The calendar feed at `/calendar.ics`.
 5. The agent token and the agent guide at `/api/guide`.
@@ -68,6 +68,9 @@ It has three users:
 2. Ctrl+Z or Cmd+Z undoes grid changes one at a time (moves, resizes, throws, adds, ticks, and edits from the dialog) until the page reloads. There is no redo.
 3. Dark mode follows the device's light or dark setting.
 4. Tasks have a description, stored in the `notes` column. Every add-task form has an Add description button, the block dialog edits it, lists show its first line, and grid blocks show it when they are tall enough. The calendar feed leaves it out.
+5. A task's signifier is a small box on grid blocks and a 24px box in phone lists. Tapping the box ticks the task, and tapping it again unticks it. Tapping the rest of a block opens the dialog.
+6. The Unfinished list is called Overdue on screen.
+7. The phone today page was redesigned. See its section below.
 
 ### Later list (left out on purpose)
 
@@ -95,7 +98,7 @@ It has three users:
 | Kind | `task` or `event`. A task has a checkbox, can go overdue, and can go back to the inbox. An event does none of these. | • and ○ |
 | Status | `open`, `done`, or `cancelled` | •, ×, struck out |
 | Inbox | Open tasks with no start | |
-| Unfinished | Open tasks whose end has passed | |
+| Overdue | Open tasks whose end has passed. The API calls the list `unfinished`. | |
 | Migration | Moving a task whose time has passed. The block shows the count, like `>2`. | > |
 | Routine | A pattern (kind, title, days, time, duration) that the server copies into each week | |
 | Routine copy | An ordinary entry created from a routine, with `routine_id` set | |
@@ -165,13 +168,13 @@ ORDER BY start;
 
 ### Rules
 
-1. **Filling a week.** Any request that reads week W (the week view, the feed, the agent) checks `filled_weeks` first. If W is missing, one transaction inserts a copy of every routine on each matching day of W from now onward, then inserts W into `filled_weeks`. Past days get no copies, so browsing an old week never fills Unfinished with routine tasks. A copy you delete later stays deleted, because W is already marked as filled. The code has a `ponytail:` comment saying that a GET request writes to the database here.
+1. **Filling a week.** Any request that reads week W (the week view, the feed, the agent) checks `filled_weeks` first. If W is missing, one transaction inserts a copy of every routine on each matching day of W from now onward, then inserts W into `filled_weeks`. Past days get no copies, so browsing an old week never fills Overdue with routine tasks. A copy you delete later stays deleted, because W is already marked as filled. The code has a `ponytail:` comment saying that a GET request writes to the database here.
 2. **Creating a routine.** The server inserts the routine, then adds its copies to every filled week, but only for days from now onward.
 3. **Deleting a routine.** The server deletes the routine's open copies that start after now. Past copies stay, and `ON DELETE SET NULL` clears their `routine_id`.
 4. **Editing a routine.** Editing means deleting the routine and creating it again, so it follows rules 2 and 3.
 5. **Migration.** When a `PATCH` changes the `start` of an open (unticked) task (to a new time, or to empty for "back to inbox"), and that task's old end had already passed, the server adds 1 to `migrations`. The server applies the rule, so the desktop, the phone, and the agent all count the same way.
 6. **Back to inbox.** This sets `start` to empty and keeps `duration`. A ticked task also goes back to `open`, because otherwise it would match no list and vanish. Only tasks can do it. For an event, the `CHECK` constraint rejects the change with a `400`.
-7. **Overdue.** Overdue isn't stored. A task is overdue when it shows up in the Unfinished query.
+7. **Overdue.** Overdue isn't stored. A task is overdue when it shows up in the `unfinished` query.
 
 ## Screens
 
@@ -190,7 +193,7 @@ ORDER BY start;
   | `--dot` | `#C4C4BD` | dot grid |
   | `--accent` | `#2D4BD0` | now line, today label, primary button |
   | `--on-accent` | `#F7F8FF` | text on the accent |
-  | `--over` | `#B3261E` | overdue and unfinished |
+  | `--over` | `#B3261E` | overdue |
   | `--routine` | `#E8E8E3` | routine block fill |
 
 - **Shape.** A 3px corner radius on everything.
@@ -201,7 +204,7 @@ ORDER BY start;
 
 ### Desktop planner (`/`)
 
-The inbox panel sits on the left, about 300px wide. It holds the quick-add form, then Unfinished, then Inbox. The week grid fills the rest. The header shows the week number and date range, plus buttons for previous week, today, and next week. The Routines button arrives in milestone 2.
+The inbox panel sits on the left, about 300px wide. It holds the quick-add form, then Overdue, then Inbox. The week grid fills the rest. The header shows the week number and date range, plus buttons for previous week, today, and next week. The Routines button arrives in milestone 2.
 
 FullCalendar settings:
 
@@ -209,7 +212,7 @@ FullCalendar settings:
 - 30-minute rows (`slotDuration: '00:30:00'`) that snap to 15 minutes (`snapDuration: '00:15:00'`)
 - Visible hours from 6 am to midnight (`slotMinTime: '06:00'`, `slotMaxTime: '24:00'`), scrolled to 7 am on load (`scrollTime: '07:00'`)
 - `nowIndicator: true`, `editable: true`, `selectable: true`, and `droppable: true`
-- The inbox and Unfinished lists use FullCalendar's `Draggable`. A drop fires `eventReceive`, which sends a `PATCH` with the new start.
+- The inbox and Overdue lists use FullCalendar's `Draggable`. A drop fires `eventReceive`, which sends a `PATCH` with the new start.
 - `eventDrop` and `eventResize` send a `PATCH`. If the save fails, they call `info.revert()` and show a short message.
 - `select` opens a small title input and sends a `POST` for an event.
 - `eventClick` opens a small popover with Tick, Back to inbox, Delete, and the title and notes fields.
@@ -221,26 +224,21 @@ When any API call returns `401`, the page shows a single "Paste your token" fiel
 
 ### Phone today page (`/today`, milestone 2)
 
-The page has these parts, from top to bottom:
+The page has a top bar and the day as a compact list. The top bar shows the date and the current time, an Arrange day icon that links to `/day`, and an Inbox icon that links to `/inbox`. The Inbox icon carries the number of inbox and overdue tasks, and the number turns red when anything is overdue.
 
-- The date and the current time.
-- A "Now" card with the time range and how long until it ends.
-- A "Next" card with how long until it starts.
-- "Later today" as rows, each with the time, the signifier, the title, and a To inbox button for tasks.
-- Buttons for Inbox and Unfinished.
-- The quick-add form with the same six duration chips as the desktop.
+The list shows every entry that touches today in time order, ticked ones included. Each row has the start time, a tick box for tasks or ○ for events, the title with the first line of its description, and the length. Past rows and ticked rows are dimmed, ticked titles are crossed out, and a past task that is still open turns red. The running entry is tinted and says "now, until 5:00 pm". A blue line marks now. A grey line like "1h 30m free" sits between entries when nothing is planned for 30 minutes or more, and free time that has started counts from now. If nothing is left today, a line names the first entry tomorrow.
 
-Tapping a task's bullet ticks it. Tapping its title opens the phone's own `<input type="datetime-local">` to move it. Every touch target is at least 44px. A `<meta name="apple-mobile-web-app-capable">` tag and an `apple-touch-icon` let "Add to Home Screen" open the page without Safari's toolbar. The page gets its data from `GET /api/week` and works out now and next itself. If nothing is left today, "Next" shows the first entry tomorrow, and on Sundays the page also fetches next week for that.
+Tapping a box ticks or unticks the task. Tapping a title opens the same dialog as the grid. Holding a row for 0.4 seconds lifts it, and the list turns into a timeline of the day from 6 am to midnight, scaled to fit the screen, with blocks as tall as they are long and overlaps side by side. Dragging moves the held block in 15-minute steps and shows its new time. Letting go saves the move and turns the timeline back into the list. Ctrl+Z undoes the move on a computer. The + button in the bottom right corner opens a sheet with the quick-add form, which adds to the inbox. Every touch target is at least 44px. A `<meta name="apple-mobile-web-app-capable">` tag and an `apple-touch-icon` let "Add to Home Screen" open the page without Safari's toolbar. The page gets its data from `GET /api/week` and works out now and next itself. If nothing is left today, "Next" shows the first entry tomorrow, and on Sundays the page also fetches next week for that.
 
 ### Phone inbox (`/inbox`, milestone 2)
 
-This page shows the same Unfinished and Inbox lists as the desktop panel. Tapping a task's bullet ticks it, and each task has a Delete button. The header links to the day page as Arrange day, which is where tasks get a time.
+This page shows the same Overdue and Inbox lists as the desktop panel. Tapping a task's box ticks it, and each task has a Delete button. The header links to the day page as Arrange day, which is where tasks get a time.
 
 ### Phone day page (`/day`, added 19 November)
 
 The Today and Inbox pages link here as Arrange day. It is for planning the day in the morning and reshuffling it during the day. The header shows the date, with ← and → to step one day at a time, a Tasks button with the number of tasks to place, and a Back link to `/today`. Below it is one day of the desktop grid, which opens an hour before now on today and at 7 am on other days. Its 30-minute rows are 48px tall, twice the desktop's, so a 15-minute block has room for its title.
 
-Tasks opens a panel that slides over the grid from the right. It is the desktop's inbox panel, with quick add, Unfinished and Inbox. Holding a task for 0.3 seconds starts a drag, and the panel slides out of the way until the drop, so the whole grid is free to drop on. A long press of 0.4 seconds drags a block, and after the long press its bottom edge resizes it. Tapping a block opens the same dialog as on the desktop. A double tap on an empty time opens the new task dialog. Creating events by dragging across empty time stays on the desktop. Throwing a block away works as on the desktop.
+Tasks opens a panel that slides over the grid from the right. It is the desktop's inbox panel, with quick add, Overdue and Inbox. Holding a task for 0.3 seconds starts a drag, and the panel slides out of the way until the drop, so the whole grid is free to drop on. A long press of 0.4 seconds drags a block, and after the long press its bottom edge resizes it. Tapping a block opens the same dialog as on the desktop. A double tap on an empty time opens the new task dialog. Creating events by dragging across empty time stays on the desktop. Throwing a block away works as on the desktop.
 
 The app has a web manifest with scope `/`, so the home screen app keeps every page inside the app. Without it, iOS opened pages other than the one added in a browser window inside the app.
 
