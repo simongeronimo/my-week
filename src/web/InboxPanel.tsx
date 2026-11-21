@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Draggable } from '@fullcalendar/interaction';
 import type { Entry, WeekView } from '../shared/types.ts';
-import { formatDuration } from '../shared/time.ts';
+import { formatDuration, parseDuration } from '../shared/time.ts';
 import { firstLine, itemMeta } from './block.ts';
 import { addEntry } from './page.tsx';
 import type { Save } from './page.tsx';
@@ -100,13 +100,7 @@ export function QuickAdd({ onAdd, label = 'New task', submit = 'Add to inbox', o
           <textarea id={`${id}-notes`} rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} autoFocus />
         </>
       )}
-      <div className="chips" role="group" aria-label="Duration">
-        {DURATIONS.map((d) => (
-          <button key={d} type="button" className={d === duration ? 'chip on' : 'chip'} aria-pressed={d === duration} onClick={() => setDuration(d)}>
-            {formatDuration(d)}
-          </button>
-        ))}
-      </div>
+      <LengthPicker value={duration} onChange={setDuration} />
       {onCancel ? (
         <div className="actions end">
           <button type="button" className="btn" onClick={onCancel}>Cancel</button>
@@ -116,5 +110,43 @@ export function QuickAdd({ onAdd, label = 'New task', submit = 'Add to inbox', o
         <button type="submit" className="btn primary">{submit}</button>
       )}
     </form>
+  );
+}
+
+type LengthPickerProps = { value: number; onChange: (minutes: number) => void; legend?: string };
+
+/** The length chips, and a box for any other length, like '1h 15m'. The form won't submit while the box holds something unreadable. */
+export function LengthPicker({ value, onChange, legend }: LengthPickerProps) {
+  const [text, setText] = useState(DURATIONS.includes(value) ? '' : formatDuration(value));
+  return (
+    <fieldset className="chips" aria-label={legend ? undefined : 'Length'}>
+      {legend && <legend>{legend}</legend>}
+      {DURATIONS.map((d) => (
+        <button
+          key={d}
+          type="button"
+          className={d === value ? 'chip on' : 'chip'}
+          aria-pressed={d === value}
+          onClick={() => {
+            setText('');
+            onChange(d);
+          }}
+        >
+          {formatDuration(d)}
+        </button>
+      ))}
+      <input
+        aria-label="Other length"
+        placeholder="Other: 1h 15m"
+        autoComplete="off"
+        value={text}
+        onChange={(e) => {
+          const minutes = parseDuration(e.target.value);
+          setText(e.target.value);
+          e.target.setCustomValidity(minutes === null && e.target.value.trim() ? 'Type a length from 5m to 24h, like 1h 15m.' : '');
+          if (minutes !== null) onChange(minutes);
+        }}
+      />
+    </fieldset>
   );
 }

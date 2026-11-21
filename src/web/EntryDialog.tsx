@@ -5,7 +5,7 @@ import { api } from './api.ts';
 import { toggleTask } from './block.ts';
 import { addEntry, saveUpdate, useModal } from './page.tsx';
 import type { Save } from './page.tsx';
-import { QuickAdd } from './InboxPanel.tsx';
+import { LengthPicker, QuickAdd } from './InboxPanel.tsx';
 import { Markdown } from './Markdown.tsx';
 
 type Props = { entry: Entry; save: Save; onClose: () => void };
@@ -18,6 +18,7 @@ export function EntryDialog({ entry, save, onClose }: Props) {
   const hasNotes = Boolean(entry.notes?.trim());
   const [editing, setEditing] = useState(!hasNotes);
   const saved = useRef(entry); // ticking a box saves while the dialog stays open, so undoing Save must put back the ticked text
+  const [duration, setDuration] = useState(entry.duration);
 
   const update = (changes: EntryChanges, before?: EntryChanges) => {
     onClose();
@@ -41,7 +42,7 @@ export function EntryDialog({ entry, save, onClose }: Props) {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          update({ title: title.trim(), notes: notes.trim() || null });
+          update({ title: title.trim(), notes: notes.trim() || null, duration });
         }}
       >
         <h2 id="entry-dialog-title">{isTask ? 'Task' : 'Event'}</h2>
@@ -56,6 +57,7 @@ export function EntryDialog({ entry, save, onClose }: Props) {
             <button type="button" className="add-desc" onClick={() => setEditing(true)}>Edit</button>
           </>
         )}
+        <LengthPicker legend="Length" value={duration} onChange={setDuration} />
         <div className="actions">
           {isTask && (
             <button type="button" className="btn" onClick={() => update({ status: done ? 'open' : 'done' })}>

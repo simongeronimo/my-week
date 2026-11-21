@@ -79,6 +79,14 @@ export function formatDuration(minutes: number): string {
   return [h ? `${h}h` : '', m ? `${m}m` : ''].filter(Boolean).join(' ');
 }
 
+/** A typed length in minutes: '75', '45m', '1h', '1h 15m', '1h15' or '1:15'. Null for anything else, or outside 5 minutes to 24 hours. */
+export function parseDuration(text: string): number | null {
+  const t = text.trim().toLowerCase();
+  const hours = t.match(/^(\d+)\s*h\s*(?:([0-5]?\d)\s*m?)?$/) ?? t.match(/^(\d+):([0-5]\d)$/);
+  const minutes = hours ? Number(hours[1]) * 60 + Number(hours[2] ?? 0) : Number(t.match(/^(\d+)\s*m?$/)?.[1]);
+  return minutes >= 5 && minutes <= 1440 ? minutes : null; // NaN, from no match, fails this too
+}
+
 const DAY = new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: 'UTC' });
 const DATE = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
 

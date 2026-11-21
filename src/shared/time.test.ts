@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addMinutes, formatDate, formatDuration, formatSpan, formatTime, isMonday, isoWeek, localNow, mondayOf, weekLabel } from './time.ts';
+import {
+  addMinutes, formatDate, formatDuration, formatSpan, formatTime, isMonday, isoWeek, localNow, mondayOf, parseDuration, weekLabel,
+} from './time.ts';
 
 test('mondayOf finds the Monday, also across months and years', () => {
   assert.equal(mondayOf('2026-11-25T14:10'), '2026-11-23');
@@ -32,6 +34,17 @@ test('time math and labels', () => {
   assert.equal(formatTime('00:15'), '12:15 am');
   assert.equal(formatDuration(90), '1h 30m');
   assert.equal(formatDate('2026-11-25T14:10'), 'Wed 25 Nov');
+});
+
+test('parseDuration reads a typed length in minutes', () => {
+  const good: Array<[string, number]> = [
+    ['75', 75], ['45m', 45], ['1h', 60], ['1h 15m', 75], ['1h15', 75], ['1:15', 75], [' 2H 30M ', 150], ['0h 30m', 30], ['5', 5], ['24h', 1440],
+  ];
+  for (const [text, minutes] of good) assert.equal(parseDuration(text), minutes, text);
+  // the database only takes 5 minutes to 24 hours
+  for (const bad of ['', 'abc', '4', '0', '1441', '25h', '1:5', '1:75', '1h 75m', '1.5h', 'h', '1h 15m 3', '-30']) {
+    assert.equal(parseDuration(bad), null, bad);
+  }
 });
 
 test('formatSpan names the day, and am or pm only once when both times share it', () => {
