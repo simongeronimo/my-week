@@ -66,10 +66,10 @@ export function formatTime(time: string, suffix = true): string {
   return suffix ? `${clock} ${h < 12 ? 'am' : 'pm'}` : clock;
 }
 
-/** '2026-11-26T14:15' and '2026-11-26T15:00' become 'Thu 2:15 – 3:00 pm'. */
+/** '2026-11-26T14:15' and '2026-11-26T15:00' become 'Thu 2:15 to 3:00 pm'. */
 export function formatSpan(start: string, end: string): string {
   const sameHalf = (start.slice(-5) < '12:00') === (end.slice(-5) < '12:00');
-  return `${formatDay(start)} ${formatTime(start, !sameHalf)} – ${formatTime(end)}`;
+  return `${formatDay(start)} ${formatTime(start, !sameHalf)} to ${formatTime(end)}`;
 }
 
 /** 90 becomes '1h 30m'. */

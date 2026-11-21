@@ -49,7 +49,7 @@ test('parseDuration reads a typed length in minutes', () => {
 
 test('formatSpan names the day, and am or pm only once when both times share it', () => {
   assert.equal(formatTime('2026-11-26T14:15', false), '2:15');
-  assert.equal(formatSpan('2026-11-26T14:15', '2026-11-26T15:00'), 'Thu 2:15 – 3:00 pm');
-  assert.equal(formatSpan('2026-11-26T11:30', '2026-11-26T12:15'), 'Thu 11:30 am – 12:15 pm');
-  assert.equal(formatSpan('2026-11-26T23:30', '2026-11-27T00:00'), 'Thu 11:30 pm – 12:00 am');
+  assert.equal(formatSpan('2026-11-26T14:15', '2026-11-26T15:00'), 'Thu 2:15 to 3:00 pm');
+  assert.equal(formatSpan('2026-11-26T11:30', '2026-11-26T12:15'), 'Thu 11:30 am to 12:15 pm');
+  assert.equal(formatSpan('2026-11-26T23:30', '2026-11-27T00:00'), 'Thu 11:30 pm to 12:00 am');
 });
