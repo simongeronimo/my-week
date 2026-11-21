@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Entry, EntryChanges } from '../shared/types.ts';
 import { formatDay, formatDuration, formatTime, fromDate } from '../shared/time.ts';
 import { api } from './api.ts';
@@ -96,6 +96,10 @@ type NewTaskProps = { start: Date; habits: Entry[]; save: Save; onClose: () => v
 /** Adds a task at one time on the grid, or places one of that day's habits there. A double click or double tap on an empty spot opens it. */
 export function NewTaskDialog({ start, habits, save, onClose }: NewTaskProps) {
   const ref = useModal();
+  useEffect(() => {
+    // showModal focuses the first habit choice. A computer gets the title box instead, as before habits; a phone keeps the choices, so its keyboard doesn't cover them.
+    if (matchMedia('(pointer: fine)').matches) ref.current?.querySelector('input')?.focus();
+  }, []);
   const at = fromDate(start);
   const today = browserNow().slice(0, 10);
   const choices = habitsFor(habits, at.slice(0, 10), today);
