@@ -12,7 +12,7 @@ import {
 } from '../shared/time.ts';
 import { api } from './api.ts';
 import { InboxPanel } from './InboxPanel.tsx';
-import { withinOneDay } from './block.ts';
+import { plainText, withinOneDay } from './block.ts';
 import { EntryDialog, NewTaskDialog } from './EntryDialog.tsx';
 import { useDoubleTap, useThrowAway } from './gestures.ts';
 import { ErrorBanner, addEntry, browserNow, saveUpdate, useErrors, useSave } from './page.tsx';
@@ -157,7 +157,7 @@ function Block({ arg }: { arg: EventContentArg }) {
       <div className="tm">
         {formatTime(fromDate(start))} · {formatDuration(minutesBetween(start, end))}
       </div>
-      {entry?.notes && <div className="desc">{entry.notes}</div>}
+      {entry?.notes && <div className="desc">{plainText(entry.notes)}</div>}
     </div>
   );
 }
