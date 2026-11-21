@@ -90,6 +90,7 @@ function placeDropped(save: Save, info: DropArg) {
  */
 export function useGridExtras(
   save: Save, undo: () => void, setWeek: Dispatch<SetStateAction<WeekView | null>>, onOpen: (entry: Entry) => void,
+  habits: Entry[], // the week's habit copies, offered by the new task dialog
 ) {
   const [bar, setBar] = useState<{ text: string; at: number } | null>(null);
   const [newAt, setNewAt] = useState<Date | null>(null);
@@ -132,7 +133,7 @@ export function useGridExtras(
         // ponytail: Undo here reverses the last change, which is the throw or push unless you change something else within 5 seconds
         <UndoBar key={bar.at} text={bar.text} onUndo={() => { undo(); setBar(null); }} onDone={() => setBar(null)} />
       )}
-      {newAt && <NewTaskDialog start={newAt} save={save} onClose={() => setNewAt(null)} />}
+      {newAt && <NewTaskDialog start={newAt} habits={habits} save={save} onClose={() => setNewAt(null)} />}
     </>
   );
   return { calendarProps, overlays };
@@ -235,7 +236,7 @@ export function Planner({ onAuthError }: { onAuthError: () => void }) {
   }, [load]);
 
   const { save, undo } = useSave(load, fail);
-  const { calendarProps, overlays } = useGridExtras(save, undo, setWeek, setOpenEntry);
+  const { calendarProps, overlays } = useGridExtras(save, undo, setWeek, setOpenEntry, week?.habits ?? []);
   const events = useMemo(() => toEvents(week?.entries ?? []), [week]); // a new array each render would make FullCalendar redraw every block
 
   function onSelect(info: DateSelectArg) {

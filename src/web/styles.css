@@ -78,6 +78,7 @@ label { font-size: 12px; font-weight: 600; }
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper); cursor: grab; }
 .item.overdue { border: 1.5px solid var(--over); }
+.item.habit { border: 1px dashed var(--muted); } /* dashed like a routine task on the grid */
 .item .sig { width: 10px; flex: none; font: 500 14px/18px var(--mono); }
 .item.overdue .sig, .item.overdue .m { color: var(--over); }
 .item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; }
@@ -134,6 +135,8 @@ label { font-size: 12px; font-weight: 600; }
 .entry-dialog::backdrop, .sheet::backdrop { background: rgb(28 28 31 / 0.25); }
 .entry-dialog form, .token-screen form { display: flex; flex-direction: column; gap: 8px; padding: 18px; }
 .entry-dialog h2 { margin: 0 0 4px; font-size: 15px; }
+.habit-picks { margin: 18px 18px 0; } /* above the new task form, which brings its own 18px */
+.habit-picks .item { width: 100%; text-align: left; cursor: pointer; }
 /* A description's Markdown, compact to fit the dialog */
 .md { font-size: 14px; line-height: 20px; overflow-wrap: anywhere; }
 .md > :first-child { margin-top: 0; }
@@ -167,6 +170,10 @@ legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
 .routine-row { align-items: center; cursor: default; }
 .routine-form h2 { margin: 0; font-size: 15px; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.time-or-any { display: flex; gap: 6px; }
+.time-or-any input { min-width: 0; }
+.time-or-any input:disabled { border-color: var(--line); color: var(--muted); }
+.time-or-any .chip { flex: none; height: auto; }
 
 /* Phone pages: 44px touch targets, and 16px inputs so iOS doesn't zoom in */
 .phone { max-width: 480px; margin: 0 auto; padding: 20px 16px 32px; display: flex; flex-direction: column; gap: 18px; }

@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
 import type { Entry, EntryChanges } from '../shared/types.ts';
-import { formatDay, formatTime, fromDate } from '../shared/time.ts';
+import { formatDay, formatDuration, formatTime, fromDate } from '../shared/time.ts';
 import { api } from './api.ts';
-import { toggleTask } from './block.ts';
-import { addEntry, saveUpdate, useModal } from './page.tsx';
+import { habitsFor, itemMeta, toggleTask } from './block.ts';
+import { addEntry, browserNow, saveUpdate, useModal } from './page.tsx';
 import type { Save } from './page.tsx';
 import { LengthPicker, QuickAdd } from './InboxPanel.tsx';
 import { Markdown } from './Markdown.tsx';
@@ -91,13 +91,39 @@ export function EntryDialog({ entry, save, onClose }: Props) {
   );
 }
 
-/** Adds a task at one time on the grid. A double click or double tap on an empty spot opens it. */
-export function NewTaskDialog({ start, save, onClose }: { start: Date; save: Save; onClose: () => void }) {
+type NewTaskProps = { start: Date; habits: Entry[]; save: Save; onClose: () => void };
+
+/** Adds a task at one time on the grid, or places one of that day's habits there. A double click or double tap on an empty spot opens it. */
+export function NewTaskDialog({ start, habits, save, onClose }: NewTaskProps) {
   const ref = useModal();
   const at = fromDate(start);
+  const today = browserNow().slice(0, 10);
+  const choices = habitsFor(habits, at.slice(0, 10), today);
 
   return (
     <dialog ref={ref} className="entry-dialog" onClose={onClose} aria-label="New task">
+      {choices.length > 0 && (
+        <fieldset className="habit-picks">
+          <legend>Place a habit, {formatDay(at)} {formatTime(at)}</legend>
+          <ul className="list">
+            {choices.map((habit) => {
+              const meta = itemMeta(habit, false, today);
+              return (
+                <li key={habit.id}>
+                  <button type="button" className="item habit" onClick={() => { onClose(); saveUpdate(save, habit, { start: at }); }}>
+                    <span className="sig" aria-hidden="true">•</span>
+                    <span className="item-body">
+                      <span className="t">{habit.title}</span>
+                      {meta && <span className="m">{meta}</span>}
+                    </span>
+                    <span className="r">{formatDuration(habit.duration)}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </fieldset>
+      )}
       <QuickAdd
         label={`New task, ${formatDay(at)} ${formatTime(at)}`}
         submit="Add task"

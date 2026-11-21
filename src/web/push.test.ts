@@ -5,7 +5,7 @@ import type { Entry } from '../shared/types.ts';
 
 const at = (id: number, start: string | null, duration = 30, more: Partial<Entry> = {}): Entry => ({
   id, kind: 'task', title: `Block ${id}`, notes: null, start, duration,
-  status: 'open', migrations: 0, routine_id: null, created_by: 'me', ...more,
+  status: 'open', migrations: 0, routine_id: null, created_by: 'me', day: null, ...more,
 });
 const ids = (entries: Entry[]) => entries.map((e) => e.id);
 const moved = at(1, '2026-11-23T09:00');

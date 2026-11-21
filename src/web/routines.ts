@@ -1,3 +1,6 @@
+import { formatDuration, formatTime } from '../shared/time.ts';
+import type { Routine } from '../shared/types.ts';
+
 export const DAY_LETTERS = 'MTWTFSS';
 export const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -13,6 +16,12 @@ export function daysLabel(pattern: string): string {
   const inARow = on.length > 2 && on.every((day, k) => k === 0 || day === on[k - 1] + 1);
   if (inARow) return `${DAY_NAMES[on[0]]} to ${DAY_NAMES[on.at(-1)!]}`;
   return on.map((day) => DAY_NAMES[day]).join(', ');
+}
+
+/** The line under a routine in the list, like 'Mon to Fri, 8:00 am, 9h' or 'Every day, any time, 1h, carries over'. */
+export function routineLabel(r: Pick<Routine, 'days' | 'at' | 'duration' | 'carry'>): string {
+  const time = r.at === null ? 'any time' : formatTime(r.at);
+  return [daysLabel(r.days), time, formatDuration(r.duration), r.carry ? 'carries over' : ''].filter(Boolean).join(', ');
 }
 
 /** Minutes from '09:00' to '17:00' (480). An end before the start means the next morning: '23:00' to '07:00' is 480. */

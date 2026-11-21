@@ -2,13 +2,19 @@ import { Lexer } from 'marked';
 import type { Entry } from '../shared/types.ts';
 import { formatDay, formatTime, fromDate } from '../shared/time.ts';
 
-/** The small note under an inbox item: when an unfinished task was planned, migrations, and who added it. */
-export function itemMeta(entry: Entry, unfinished: boolean): string {
+/** The small note under an inbox item: when an unfinished task was planned, a carried habit's day, migrations, and who added it. */
+export function itemMeta(entry: Entry, unfinished: boolean, today = ''): string {
   return [
     unfinished && entry.start ? `was ${formatDay(entry.start)} ${formatTime(entry.start)}` : '',
+    entry.day && entry.day < today ? `from ${formatDay(entry.day)}` : '',
     entry.migrations > 0 ? `>${entry.migrations} carried forward` : '',
     entry.created_by === 'agent' ? 'added by planner agent' : '',
   ].filter(Boolean).join(', ');
+}
+
+/** The habit copies to offer on a day: that day's, plus the carried ones when the day is today. */
+export function habitsFor(habits: Entry[], day: string, today: string): Entry[] {
+  return habits.filter((e) => e.day === day || (day === today && e.day! < today));
 }
 
 /** A selection must stay within one day. Its end is exclusive, so a slot ending at midnight still counts. */

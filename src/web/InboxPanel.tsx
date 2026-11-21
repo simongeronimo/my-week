@@ -2,8 +2,8 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Draggable } from '@fullcalendar/interaction';
 import type { Entry, WeekView } from '../shared/types.ts';
 import { formatDuration, parseDuration } from '../shared/time.ts';
-import { firstLine, itemMeta } from './block.ts';
-import { addEntry } from './page.tsx';
+import { firstLine, habitsFor, itemMeta } from './block.ts';
+import { addEntry, browserNow } from './page.tsx';
 import type { Save } from './page.tsx';
 
 const DURATIONS = [15, 30, 45, 60, 90, 120];
@@ -25,6 +25,8 @@ export function InboxPanel({ week, save, onOpen }: Props) {
 
   const unfinished = week?.unfinished ?? [];
   const inbox = week?.inbox ?? [];
+  const today = browserNow().slice(0, 10);
+  const habits = habitsFor(week?.habits ?? [], today, today);
 
   return (
     <aside className="inbox" ref={ref} aria-label="Inbox">
@@ -40,6 +42,15 @@ export function InboxPanel({ week, save, onOpen }: Props) {
           </ul>
         </section>
       )}
+      {habits.length > 0 && (
+        <section>
+          <h2>Habits <span className="count">{habits.length}</span></h2>
+          <p className="hint">Today's habits, and missed ones that carry over. Hold one, then drag it onto the grid.</p>
+          <ul className="list">
+            {habits.map((entry) => <Item key={entry.id} entry={entry} today={today} onOpen={onOpen} />)}
+          </ul>
+        </section>
+      )}
       <section>
         <h2>Inbox <span className="count">{inbox.length}</span></h2>
         <p className="hint">{inbox.length > 0 ? 'Hold a task, then drag it onto the grid.' : 'Empty. Add a task above.'}</p>
@@ -51,10 +62,12 @@ export function InboxPanel({ week, save, onOpen }: Props) {
   );
 }
 
-function Item({ entry, unfinished = false, onOpen }: { entry: Entry; unfinished?: boolean; onOpen: (entry: Entry) => void }) {
-  const meta = itemMeta(entry, unfinished);
+type ItemProps = { entry: Entry; unfinished?: boolean; today?: string; onOpen: (entry: Entry) => void };
+
+function Item({ entry, unfinished = false, today, onOpen }: ItemProps) {
+  const meta = itemMeta(entry, unfinished, today);
   return (
-    <li className={unfinished ? 'item overdue' : 'item'} data-id={entry.id} data-title={entry.title} data-duration={entry.duration} data-start={entry.start ?? ''}>
+    <li className={unfinished ? 'item overdue' : entry.day ? 'item habit' : 'item'} data-id={entry.id} data-title={entry.title} data-duration={entry.duration} data-start={entry.start ?? ''}>
       <span className="sig" aria-hidden="true">•</span>
       <button type="button" className="item-body" onClick={() => onOpen(entry)}>
         <span className="t">{entry.title}</span>

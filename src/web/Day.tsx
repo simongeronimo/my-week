@@ -7,6 +7,7 @@ import { gridOptions, toEvents, useGridExtras } from './Planner.tsx';
 import { InboxPanel } from './InboxPanel.tsx';
 import { EntryDialog } from './EntryDialog.tsx';
 import { HOLD_MS } from './gestures.ts';
+import { habitsFor } from './block.ts';
 import { ErrorBanner, browserNow, useErrors, useReloadOnShow, useSave } from './page.tsx';
 import { scrollTimeFor } from './today.ts';
 
@@ -35,10 +36,11 @@ export function Day({ onAuthError }: { onAuthError: () => void }) {
   }, [day]);
 
   const { save, undo } = useSave(load, fail);
-  const { calendarProps, overlays } = useGridExtras(save, undo, setWeek, setOpenEntry);
+  const { calendarProps, overlays } = useGridExtras(save, undo, setWeek, setOpenEntry, week?.habits ?? []);
   const events = useMemo(() => toEvents(week?.entries ?? []), [week]);
 
-  const toPlace = week ? week.unfinished.length + week.inbox.length : 0;
+  const today = browserNow().slice(0, 10);
+  const toPlace = week ? week.unfinished.length + habitsFor(week.habits, today, today).length + week.inbox.length : 0;
 
   return (
     <main className="phone day">

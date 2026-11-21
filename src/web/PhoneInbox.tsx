@@ -1,12 +1,12 @@
 import { useCallback, useState } from 'react';
 import type { Entry, WeekView } from '../shared/types.ts';
 import { formatDuration, mondayOf } from '../shared/time.ts';
-import { firstLine, itemMeta } from './block.ts';
+import { firstLine, habitsFor, itemMeta } from './block.ts';
 import { api } from './api.ts';
 import { ErrorBanner, browserNow, useErrors, useReloadOnShow, useSave } from './page.tsx';
 import type { Save } from './page.tsx';
 
-/** The phone's inbox: overdue tasks and inbox tasks. Tap a box to tick a task. Placing them happens on the day page. */
+/** The phone's inbox: overdue tasks, today's habits and inbox tasks. Tap a box to tick a task. Placing them happens on the day page. */
 export function PhoneInbox({ onAuthError }: { onAuthError: () => void }) {
   const [week, setWeek] = useState<WeekView | null>(null);
   const { message, fail, clear } = useErrors(onAuthError);
@@ -17,6 +17,8 @@ export function PhoneInbox({ onAuthError }: { onAuthError: () => void }) {
 
   const unfinished = week?.unfinished ?? [];
   const inbox = week?.inbox ?? [];
+  const today = browserNow().slice(0, 10);
+  const habits = habitsFor(week?.habits ?? [], today, today);
 
   return (
     <main className="phone">
@@ -34,6 +36,12 @@ export function PhoneInbox({ onAuthError }: { onAuthError: () => void }) {
           <ul className="rows">{unfinished.map((e) => <InboxLine key={e.id} entry={e} unfinished save={save} />)}</ul>
         </section>
       )}
+      {habits.length > 0 && (
+        <section>
+          <h2 className="sh">Habits <span>{habits.length}</span></h2>
+          <ul className="rows">{habits.map((e) => <InboxLine key={e.id} entry={e} unfinished={false} today={today} save={save} />)}</ul>
+        </section>
+      )}
       <section>
         <h2 className="sh">Inbox <span>{inbox.length}</span></h2>
         {week === null && <p className="hint">Loading the inbox.</p>}
@@ -44,8 +52,8 @@ export function PhoneInbox({ onAuthError }: { onAuthError: () => void }) {
   );
 }
 
-function InboxLine({ entry, unfinished, save }: { entry: Entry; unfinished: boolean; save: Save }) {
-  const meta = itemMeta(entry, unfinished);
+function InboxLine({ entry, unfinished, today, save }: { entry: Entry; unfinished: boolean; today?: string; save: Save }) {
+  const meta = itemMeta(entry, unfinished, today);
   return (
     <li className="line">
       <div className="line-main">

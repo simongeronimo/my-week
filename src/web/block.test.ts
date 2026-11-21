@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { firstLine, isSafeLink, itemMeta, lexNotes, plainText, toggleTask, withinOneDay } from './block.ts';
+import { firstLine, habitsFor, isSafeLink, itemMeta, lexNotes, plainText, toggleTask, withinOneDay } from './block.ts';
 import type { Entry } from '../shared/types.ts';
 
 test('a selection on the grid must stay within one day', () => {
@@ -19,6 +19,19 @@ test('an inbox item notes where it came from', () => {
   assert.equal(itemMeta({ ...base, start: null, migrations: 2 }, false), '>2 carried forward');
   assert.equal(itemMeta({ ...base, start: null, created_by: 'agent' }, false), 'added by planner agent');
   assert.equal(itemMeta({ ...base, start: null }, false), '');
+  // a habit copy carried over from an earlier day says which day it was
+  assert.equal(itemMeta({ ...base, start: null, day: '2026-11-23' }, false, '2026-11-25'), 'from Mon');
+  assert.equal(itemMeta({ ...base, start: null, day: '2026-11-25' }, false, '2026-11-25'), '');
+});
+
+test('a day offers its own habit copies, and today also offers the carried ones', () => {
+  const copy = (id: number, day: string) => ({ id, day }) as Entry;
+  const habits = [copy(1, '2026-11-23'), copy(2, '2026-11-25'), copy(3, '2026-11-26')];
+  const ids = (day: string) => habitsFor(habits, day, '2026-11-25').map((e) => e.id);
+  assert.deepEqual(ids('2026-11-25'), [1, 2]);
+  assert.deepEqual(ids('2026-11-26'), [3]);
+  assert.deepEqual(ids('2026-11-23'), [1]);
+  assert.deepEqual(ids('2026-11-27'), []);
 });
 
 test('a description shows its first line that has text', () => {

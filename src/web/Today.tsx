@@ -8,7 +8,7 @@ import { STEP, TIMELINE_FROM, TIMELINE_MINUTES, dayRows, lanes, nextEntry, shift
 import { QuickAdd } from './InboxPanel.tsx';
 import { EntryDialog } from './EntryDialog.tsx';
 import { useHoldDrag } from './gestures.ts';
-import { firstLine } from './block.ts';
+import { firstLine, habitsFor } from './block.ts';
 import { ErrorBanner, addEntry, browserNow, saveUpdate, useErrors, useModal, useReloadOnShow, useSave } from './page.tsx';
 import type { Save } from './page.tsx';
 
@@ -68,7 +68,7 @@ export function Today({ onAuthError }: { onAuthError: () => void }) {
   const today = now.slice(0, 10);
   const rows = dayRows(entries, now);
   const next = nextEntry(entries, now);
-  const inbox = weeks?.[0].inbox.length ?? 0;
+  const inbox = weeks ? weeks[0].inbox.length + habitsFor(weeks[0].habits, today, today).length : 0;
   const overdue = weeks?.[0].unfinished.length ?? 0;
 
   /** Changes an entry on screen at once, then saves it. */
