@@ -122,6 +122,7 @@ label { font-size: 12px; font-weight: 600; }
 /* The tag above a block while it drags or resizes. It sits outside .blk, which would clip it. */
 .drag-tag { position: absolute; left: -1px; bottom: calc(100% + 3px); padding: 0 5px; border-radius: var(--radius); background: var(--ink); color: var(--paper); box-shadow: 0 0 0 1px var(--bg); font: 500 11px/17px var(--mono); white-space: nowrap; pointer-events: none; } /* the ring keeps it apart from a dark event block under it */
 .drag-tag.below { top: calc(100% + 3px); bottom: auto; }
+.fc-timeGridWeek-view .fc-timegrid-col:last-child .drag-tag { left: auto; right: -1px; } /* the tag is wider than a day, so in the last day it grows leftward, away from the grid's edge */
 .fc .fc-timegrid-col-events:has(.fc-event-mirror) { z-index: 5; } /* so the tag also covers blocks in the next day and the now line */
 /* A block shows its description only when it has room: one line from about 1h on the week grid, three lines from 1h 30m */
 .blk .desc { display: none; font-size: 11px; line-height: 15px; color: inherit; opacity: 0.75; white-space: normal; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
