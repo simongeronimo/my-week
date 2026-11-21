@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { Entry, EntryChanges } from '../shared/types.ts';
 import { formatDay, formatTime, fromDate } from '../shared/time.ts';
 import { api } from './api.ts';
+import { toggleTask } from './block.ts';
 import { addEntry, saveUpdate, useModal } from './page.tsx';
 import type { Save } from './page.tsx';
 import { QuickAdd } from './InboxPanel.tsx';
+import { Markdown } from './Markdown.tsx';
 
 type Props = { entry: Entry; save: Save; onClose: () => void };
 
@@ -13,10 +15,23 @@ export function EntryDialog({ entry, save, onClose }: Props) {
   const ref = useModal();
   const [title, setTitle] = useState(entry.title);
   const [notes, setNotes] = useState(entry.notes ?? '');
+  const hasNotes = Boolean(entry.notes?.trim());
+  const [editing, setEditing] = useState(!hasNotes);
+  const saved = useRef(entry); // ticking a box saves while the dialog stays open, so undoing Save must put back the ticked text
 
   const update = (changes: EntryChanges, before?: EntryChanges) => {
     onClose();
-    saveUpdate(save, entry, changes, before);
+    saveUpdate(save, saved.current, changes, before);
+  };
+  const tick = async (index: number) => {
+    const was = saved.current;
+    const ticked = toggleTask(was.notes ?? '', index);
+    saved.current = { ...was, notes: ticked };
+    setNotes(ticked);
+    if (!(await saveUpdate(save, was, { notes: ticked }))) {
+      saved.current = was;
+      setNotes(was.notes ?? '');
+    }
   };
   const isTask = entry.kind === 'task';
   const done = entry.status === 'done';
@@ -33,7 +48,14 @@ export function EntryDialog({ entry, save, onClose }: Props) {
         <label htmlFor="entry-title">Title</label>
         <input id="entry-title" value={title} onChange={(e) => setTitle(e.target.value)} required />
         <label htmlFor="entry-notes">Description</label>
-        <textarea id="entry-notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
+        {editing ? (
+          <textarea id="entry-notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} autoFocus={hasNotes} />
+        ) : (
+          <>
+            <Markdown source={notes} onToggle={tick} />
+            <button type="button" className="add-desc" onClick={() => setEditing(true)}>Edit</button>
+          </>
+        )}
         <div className="actions">
           {isTask && (
             <button type="button" className="btn" onClick={() => update({ status: done ? 'open' : 'done' })}>
