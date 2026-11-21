@@ -50,6 +50,8 @@ To roll back, restore the snapshot and set the image to the old version, for exa
 
 Open `/routines` (the Routines button on the week page) to add and delete routines. `days` is seven letters from Monday to Sunday, with a dot for days off: `MTWTF..` means weekdays.
 
+Choose Any time instead of a time to make a habit: something to do on those days whenever it suits you, like an hour of gaming. Each day's habits show in a Habits section of the inbox until you drag them onto the grid, tick them or delete them, and the new task dialog offers them when you double-click that day. With Carry over on, a missed habit keeps showing on the following days until Sunday night. With it off, it's gone the next day.
+
 You can also use curl:
 
 ```sh
@@ -58,6 +60,8 @@ URL=https://my-week.example.com          # your subdomain
 
 curl -s -X POST "$URL/api/routines" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"kind":"event","title":"Work","days":"MTWTF..","at":"08:00","duration":540}'
+curl -s -X POST "$URL/api/routines" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"kind":"task","title":"Gaming","days":"MTWTFSS","at":null,"duration":60,"carry":1}'
 curl -s "$URL/api/routines" -H "Authorization: Bearer $TOKEN"
 curl -s -X DELETE "$URL/api/routines/<id>" -H "Authorization: Bearer $TOKEN"
 ```
@@ -75,7 +79,7 @@ The Today page lists your day. Tap a box to tick a task, and tap a title to open
 
 To arrange a day on the phone, tap the four squares on the Today page, or Arrange day on the Inbox page. Tap Tasks to open the task panel, hold a task for a moment, then drag it onto the grid. Long-press a block to move it, and after the long press drag its bottom edge to change its length. Double-tap an empty time to add a task there.
 
-On either grid, tap a task's box to tick it, and fling a block away fast to delete it, and tap Undo if you didn't mean it. On a computer, double-click an empty time to add a task, and Ctrl+Z (Cmd+Z on a Mac) undoes your last changes on the grid. Dark mode follows your device's setting. To give a task a description, tap Add description when you create it, or open the task later and type in the Description box.
+On either grid, tap a task's box to tick it, and fling a block away fast to delete it, and tap Undo if you didn't mean it. On a computer, double-click an empty time to add a task, and Ctrl+Z (Cmd+Z on a Mac) undoes your last changes on the grid. Dark mode follows your device's setting. While you move or resize a block, a tag on it shows its exact time. Hold a block still for a second before you drag it, and the blocks right behind it move along. To give a task a description, tap Add description when you create it, or open the task and tap Edit. Descriptions are Markdown, and checklist lines like `- [ ] milk` become boxes you can tick in the task dialog. To set a length the chips don't offer, type it in the Other box, like `1h 15m`.
 
 If you added my-week to the home screen before version 0.4.0, delete the icon and add it again from `/today`, then paste the token again. Older icons open other pages in a browser window inside the app.
 

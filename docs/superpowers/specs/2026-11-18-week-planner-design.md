@@ -81,7 +81,7 @@ All six ship together as 0.7.0.
 3. **Any length.** Next to the length chips, a small box takes a typed length: "75", "45m", "1h", "1h 15m" or "1:15". Lengths run from 5 minutes to 24 hours, like the database allows. Every add-task form gets it, and the entry dialog gets the same chips and box, so you can change the length of an inbox task, or of any entry on the phone, where blocks can't be resized.
 4. **Habits.** A habit is a routine with no time: something to do on certain days at whatever time suits you. See "Habits" below.
 5. **Descriptions are Markdown.** Opening an entry shows its description formatted, with bold, italics, lists, links and headings, and an Edit button that turns it back into the text box. Checklist lines like `- [ ] milk` become boxes you can tick right there, and ticking saves at once and can be undone. Raw HTML in a description is never rendered, because the agent can write descriptions too. Lists, phone rows and grid blocks keep showing plain text, with the Markdown symbols taken out.
-6. **Pushing the blocks behind.** On the desktop week grid and the phone day page, pressing a block and holding it still for 1 second before moving switches the drag to push mode, and the block and the blocks it will push get marked. On the phone this is the same press that starts a drag after 0.4 seconds, held a little longer. When you let go, the blocks that followed the moved block back to back on its old day move by the same amount. Back to back means each one starts exactly when the one before it ends, and the first gap ends the chain. One Ctrl+Z, or the undo bar, puts them all back. Resizing never pushes.
+6. **Pushing the blocks behind.** On the desktop week grid and the phone day page, pressing a block and holding it still for 1 second before moving switches the drag to push mode, and the block and the blocks it will push get marked. On the phone this is the same press that starts a drag after 0.4 seconds, held a little longer. When you let go, the blocks that followed the moved block back to back on its old day move by the same amount. Back to back means each one starts exactly when the one before it ends, and the first gap ends the chain. One Ctrl+Z, or the undo bar, puts them all back. Resizing never pushes, and holding a block with nothing right behind it is a plain move.
 
 #### Habits
 
@@ -92,7 +92,7 @@ All six ship together as 0.7.0.
 - **Double-click.** The new task dialog that a double-click or double tap opens lists the habits for that day as one-click choices above the form, plus the carried ones when the day is today. Choosing one places that copy at the clicked time.
 - **Placed habits** look like routine tasks: a dashed outline. If the time passes without a tick, they go to Overdue like any task.
 - **Data.** `routines.at` becomes optional, with a check that only tasks may leave it empty, and `routines` gets `carry INTEGER NOT NULL DEFAULT 0`. `entries` gets `day TEXT`, set only on habit copies. SQLite can't change `at` in place, so migration `002` rebuilds `routines`. Foreign keys must be off during the rebuild, because dropping the old table with them on would clear `routine_id` on every routine copy.
-- **Rules.** Rule 1 creates habit copies with `start` empty and `day` set. Rule 3 also deletes a habit's unplaced copies. The inbox query skips copies with a `day`. `GET /api/week` returns a new `habits` list: open, unplaced habit copies dated from this week's Monday up to the end of the shown week, or up to today if the shown week is in the past. It leaves out copies dated before today unless their habit carries over. The inbox section shows the ones dated today or earlier, and the double-click dialog picks by day. `POST /api/routines` accepts `at: null` and `carry`. The agent guide explains habits.
+- **Rules.** Rule 1 creates habit copies with `start` empty and `day` set. Rule 3 also deletes a habit's unplaced copies, and like any routine it deletes open copies placed at a future time. Reading any week also fills the current week, so the Habits section is complete on Sundays and when browsing a past week. The inbox query skips copies with a `day`. `GET /api/week` returns a new `habits` list: open, unplaced habit copies dated from this week's Monday up to the end of the shown week, or up to today if the shown week is in the past. It leaves out copies dated before today unless their habit carries over. The inbox section shows the ones dated today or earlier, with "from Tue" on carried ones, and the double-click dialog picks by day. On a computer the dialog puts the cursor in the title box. On a phone it leaves it on the habit choices, so the keyboard doesn't cover them. `POST /api/routines` accepts `at: null` and `carry`. The agent guide explains habits.
 
 ### Later list (left out on purpose)
 
@@ -173,7 +173,7 @@ Notes:
 ```sql
 -- Inbox
 SELECT * FROM entries
-WHERE kind = 'task' AND status = 'open' AND start IS NULL
+WHERE kind = 'task' AND status = 'open' AND start IS NULL AND day IS NULL  -- habit copies have their own list
 ORDER BY id;
 
 -- Unfinished. :now is the current local time, like '2026-11-25T14:10'.
@@ -226,7 +226,7 @@ ORDER BY start;
 
 ### Desktop planner (`/`)
 
-The inbox panel sits on the left, about 300px wide. It holds the quick-add form, then Overdue, then Inbox. The week grid fills the rest. The header shows the week number and date range, plus buttons for previous week, today, and next week. The Routines button arrives in milestone 2.
+The inbox panel sits on the left, about 300px wide. It holds the quick-add form, then Overdue, then Habits, then Inbox. The week grid fills the rest. The header shows the week number and date range, plus buttons for previous week, today, and next week. The Routines button arrives in milestone 2.
 
 FullCalendar settings:
 
@@ -254,7 +254,7 @@ Tapping a box ticks or unticks the task. Tapping a title opens the same dialog a
 
 ### Phone inbox (`/inbox`, milestone 2)
 
-This page shows the same Overdue and Inbox lists as the desktop panel. Tapping a task's box ticks it, and each task has a Delete button. The header links to the day page as Arrange day, which is where tasks get a time.
+This page shows the same Overdue, Habits and Inbox lists as the desktop panel. Tapping a task's box ticks it, and each task has a Delete button. The header links to the day page as Arrange day, which is where tasks get a time.
 
 ### Phone day page (`/day`, added 19 November)
 
@@ -266,7 +266,7 @@ The app has a web manifest with scope `/`, so the home screen app keeps every pa
 
 ### Routines page (`/routines`, milestone 2)
 
-This page lists routines, each with a Delete button, above a form for kind, title, days (seven toggles), time, and duration. Edit means delete and create.
+This page lists routines, each with a Delete button, above a form for kind, title, days (seven toggles), time, and duration. "Any time" instead of a time makes a habit, which also gets a Carry over choice. Edit means delete and create.
 
 ### Routines in milestone 1
 
@@ -294,13 +294,13 @@ Every route under `/api` requires `Authorization: Bearer <token>`. Request and r
 
 | Route | What it does |
 |---|---|
-| `GET /api/week?monday=2026-11-23` | Fills the week if needed, then returns `{ entries, inbox, unfinished }`. Without `monday` it returns the current week. On Sundays the planner page asks for next week itself. A date that isn't a Monday gets a `400`. |
+| `GET /api/week?monday=2026-11-23` | Fills the week if needed, then returns `{ monday, entries, inbox, unfinished, habits }`. Without `monday` it returns the current week. On Sundays the planner page asks for next week itself. A date that isn't a Monday gets a `400`. |
 | `POST /api/entries` | Takes `{ kind, title, notes?, start?, duration }` and returns `201` with the entry. A task without `start` goes to the inbox. |
 | `PATCH /api/entries/:id` | Takes any of `title`, `notes`, `start`, `duration`, `status` and returns `200` with the entry. Applies the migration rule. |
 | `DELETE /api/entries/:id` | Returns `204`. |
 | `GET /api/routines` | Returns all routines. |
-| `POST /api/routines` | Takes `{ kind, title, days, at, duration }`, fills copies (rule 2), and returns `201`. |
-| `DELETE /api/routines/:id` | Removes future open copies (rule 3) and returns `204`. |
+| `POST /api/routines` | Takes `{ kind, title, days, at, duration }`, and optionally `carry` (0 or 1). `at: null` or no `at` makes a habit, which must be a task. Fills copies (rule 2) and returns `201`. |
+| `DELETE /api/routines/:id` | Removes future open copies and a habit's unplaced copies (rule 3), and returns `204`. |
 | `GET /api/guide` | Returns `docs/agent-api.md` as `text/markdown`. |
 | `GET /calendar.ics?token=…` | Returns the feed. It uses `FEED_TOKEN` in the URL instead of a header. |
 

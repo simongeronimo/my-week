@@ -26,7 +26,7 @@ Everything else gets a `403`: moving, ticking, editing or deleting entries, crea
 | `id` | A number. |
 | `kind` | `task` or `event`. Someone else fixed an event's time, like a dentist appointment. |
 | `title` | Text. |
-| `notes` | Text, or null. |
+| `notes` | The description, in Markdown, or null. Lines like `- [ ] milk` are a checklist the user can tick. |
 | `start` | A wall-clock time in the user's time zone, like `2026-11-25T19:30`. Null for inbox tasks. |
 | `duration` | Minutes, from 5 to 1440. |
 | `status` | `open`, `done`, or `cancelled`. |
