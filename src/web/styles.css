@@ -302,7 +302,7 @@ body:has(> .fc-event-dragging) .drawer-backdrop { display: none; } /* FullCalend
   border-radius: var(--radius); background: var(--ink); color: var(--paper);
 }
 .undo-bar span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.undo-bar .btn { flex: none; }
+.undo-bar .btn { flex: none; color: var(--ink); } /* buttons inherit the bar's paper colour otherwise, which hides the label */
 
 /* Dark mode follows the phone or computer setting. Colours from the "Dot grid" mockup, plus a dark routine blue. */
 @media (prefers-color-scheme: dark) {
