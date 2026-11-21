@@ -3,8 +3,8 @@ import { Draggable } from '@fullcalendar/interaction';
 import type { Entry, WeekView } from '../shared/types.ts';
 import { formatDuration } from '../shared/time.ts';
 import { firstLine, itemMeta } from './block.ts';
-import { api } from './api.ts';
-import type { Save } from './Planner.tsx';
+import { addEntry } from './page.tsx';
+import type { Save } from './page.tsx';
 
 const DURATIONS = [15, 30, 45, 60, 90, 120];
 
@@ -14,9 +14,8 @@ export function InboxPanel({ week, save, onOpen }: Props) {
   const ref = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    if (!ref.current) return;
     // Any .item in this panel can be dropped on the grid; the grid's `drop` callback saves the new start.
-    const draggable = new Draggable(ref.current, {
+    const draggable = new Draggable(ref.current!, {
       itemSelector: '.item',
       longPressDelay: 300, // on a phone, hold a task this long (ms) before it drags, so the list still scrolls
       eventData: (el) => ({ title: el.dataset.title, duration: { minutes: Number(el.dataset.duration) }, create: false }),
@@ -30,10 +29,7 @@ export function InboxPanel({ week, save, onOpen }: Props) {
   return (
     <aside className="inbox" ref={ref} aria-label="Inbox">
       <QuickAdd
-        onAdd={(title, duration, notes) => {
-          const created = api.createEntry({ kind: 'task', title, duration, notes });
-          save(created, undefined, async () => api.deleteEntry((await created).id));
-        }}
+        onAdd={(title, duration, notes) => addEntry(save, { kind: 'task', title, duration, notes })}
       />
       {unfinished.length > 0 && (
         <section>
@@ -58,7 +54,7 @@ export function InboxPanel({ week, save, onOpen }: Props) {
 function Item({ entry, unfinished = false, onOpen }: { entry: Entry; unfinished?: boolean; onOpen: (entry: Entry) => void }) {
   const meta = itemMeta(entry, unfinished);
   return (
-    <li className={unfinished ? 'item unf' : 'item'} data-id={entry.id} data-title={entry.title} data-duration={entry.duration} data-start={entry.start ?? ''}>
+    <li className={unfinished ? 'item overdue' : 'item'} data-id={entry.id} data-title={entry.title} data-duration={entry.duration} data-start={entry.start ?? ''}>
       <span className="sig" aria-hidden="true">•</span>
       <button type="button" className="item-body" onClick={() => onOpen(entry)}>
         <span className="t">{entry.title}</span>

@@ -41,3 +41,6 @@ export type NewEntry = {
 export type NewRoutine = Omit<Routine, 'id'>;
 
 export type EntryChanges = Partial<Pick<Entry, 'title' | 'notes' | 'start' | 'duration' | 'status'>>;
+
+/** The bullet journal signifier in front of an entry: ○ event, • open task, × done task. The app and the calendar feed share it. */
+export const signifier = (e: Pick<Entry, 'kind' | 'status'>) => (e.kind === 'event' ? '○' : e.status === 'done' ? '×' : '•');

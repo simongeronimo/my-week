@@ -1,4 +1,5 @@
 import { addMinutes } from '../shared/time.ts';
+import { signifier } from '../shared/types.ts';
 import type { Entry } from '../shared/types.ts';
 
 // The calendar feed in iCalendar format (RFC 5545), written by hand: it is plain text with three rules.
@@ -17,8 +18,6 @@ const escapeText = (text: string) =>
 
 /** '2026-11-25T19:30' becomes '20261125T193000', a floating time that iPhone reads as local time. */
 const icsTime = (time: string) => `${time.replace(/[-:]/g, '')}00`;
-
-const signifier = (e: Entry) => (e.kind === 'event' ? '○' : e.status === 'done' ? '×' : '•');
 
 /** Lines longer than 75 octets continue on the next line after a space, never inside a UTF-8 character (RFC 5545, 3.1). */
 export function fold(line: string): string {

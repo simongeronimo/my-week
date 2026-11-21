@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, HTMLAttributes } from 'react';
 import { PlusIcon, SquaresFourIcon, TrayIcon } from '@phosphor-icons/react';
 import type { Entry, EntryChanges, WeekView } from '../shared/types.ts';
-import { addDays, addMinutes, formatDate, formatDuration, formatTime, mondayOf } from '../shared/time.ts';
+import { addDays, addMinutes, formatDate, formatDay, formatDuration, formatTime, mondayOf } from '../shared/time.ts';
 import { api } from './api.ts';
-import { STEP, TIMELINE_MINUTES, dayRows, lanes, lineTime, shiftStart, timelineMinute, todayView } from './today.ts';
+import { STEP, TIMELINE_FROM, TIMELINE_MINUTES, dayRows, lanes, nextEntry, shiftStart, timelineMinute } from './today.ts';
 import { QuickAdd } from './InboxPanel.tsx';
 import { EntryDialog } from './EntryDialog.tsx';
-import { useSave } from './Planner.tsx';
 import { useHoldDrag } from './gestures.ts';
 import { firstLine } from './block.ts';
-import { ErrorBanner, browserNow, useErrors } from './page.tsx';
+import { ErrorBanner, addEntry, browserNow, saveUpdate, useErrors, useModal, useReloadOnShow, useSave } from './page.tsx';
+import type { Save } from './page.tsx';
 
 /** Row heights in px. They're fixed, so the list and the timeline are both plain positions the browser can animate between. */
 const ROW = { entry: 52, free: 24, now: 22 };
@@ -20,7 +20,7 @@ const AXIS = 62;
 /** The shortest block in the timeline, in px, so a 15-minute task still shows its title. */
 const MIN_BLOCK = 20;
 /** The timeline's hour labels, in minutes from 6 am: every two hours. */
-const HOURS = Array.from({ length: 10 }, (_, i) => i * 120);
+const HOURS = Array.from({ length: TIMELINE_MINUTES / 120 + 1 }, (_, i) => i * 120);
 
 /**
  * A row being held and dragged. delta is how far it has moved, in minutes. origin is where 6 am sits
@@ -30,7 +30,7 @@ type Drag = { id: number; delta: number; origin: number; scale: number; height: 
 
 /** The phone's home screen: today as a compact list. Hold a row to drag it, and the list turns into a timeline until you let go. */
 export function Today({ onAuthError }: { onAuthError: () => void }) {
-  const [weeks, setWeeks] = useState<WeekView[] | null>(null); // null until the first load arrives
+  const [weeks, setWeeks] = useState<WeekView[] | null>(null);
   const [now, setNow] = useState(browserNow);
   const [openEntry, setOpenEntry] = useState<Entry | null>(null);
   const [adding, setAdding] = useState(false);
@@ -52,21 +52,14 @@ export function Today({ onAuthError }: { onAuthError: () => void }) {
     return Promise.all(mondays.map((m) => api.week(m))).then(setWeeks, fail);
   }, [fail]);
 
+  useReloadOnShow(load);
   useEffect(() => {
-    load();
     const tick = setInterval(() => {
       const current = browserNow();
       setNow(current);
       if (current.slice(0, 10) !== loadedDay.current) load(); // a page left open past midnight fetches the new day
     }, 15_000);
-    const onShow = () => {
-      if (document.visibilityState === 'visible') load(); // the app comes back to the front
-    };
-    document.addEventListener('visibilitychange', onShow);
-    return () => {
-      clearInterval(tick);
-      document.removeEventListener('visibilitychange', onShow);
-    };
+    return () => clearInterval(tick);
   }, [load]);
 
   const { save } = useSave(load, fail);
@@ -74,15 +67,14 @@ export function Today({ onAuthError }: { onAuthError: () => void }) {
   const entries = weeks?.flatMap((w) => w.entries) ?? [];
   const today = now.slice(0, 10);
   const rows = dayRows(entries, now);
-  const next = todayView(entries, now).next;
-  const inbox = weeks?.[0]?.inbox.length ?? 0;
-  const overdue = weeks?.[0]?.unfinished.length ?? 0;
+  const next = nextEntry(entries, now);
+  const inbox = weeks?.[0].inbox.length ?? 0;
+  const overdue = weeks?.[0].unfinished.length ?? 0;
 
-  /** Changes an entry on screen at once, then saves it, with a way back for Ctrl+Z. */
+  /** Changes an entry on screen at once, then saves it. */
   function change(entry: Entry, changes: EntryChanges) {
-    const before = Object.fromEntries(Object.keys(changes).map((key) => [key, entry[key as keyof EntryChanges]])) as EntryChanges;
     setWeeks((ws) => ws && ws.map((w) => ({ ...w, entries: w.entries.map((e) => (e.id === entry.id ? { ...e, ...changes } : e)) })));
-    save(api.updateEntry(entry.id, changes), undefined, () => api.updateEntry(entry.id, before));
+    saveUpdate(save, entry, changes);
   }
 
   const setDragNow = (d: Drag | null) => {
@@ -154,7 +146,7 @@ export function Today({ onAuthError }: { onAuthError: () => void }) {
           </a>
           <a className="icon-btn" href="/inbox" aria-label={`Inbox, ${inbox + overdue} tasks${overdue ? `, ${overdue} overdue` : ''}`} title="Inbox">
             <TrayIcon size={22} aria-hidden="true" />
-            {inbox + overdue > 0 && <span className={overdue ? 'badge over' : 'badge'}>{inbox + overdue}</span>}
+            {inbox + overdue > 0 && <span className={overdue ? 'badge overdue' : 'badge'}>{inbox + overdue}</span>}
           </a>
         </nav>
       </header>
@@ -168,16 +160,16 @@ export function Today({ onAuthError }: { onAuthError: () => void }) {
       >
         {drag && HOURS.map((minute) => (
           <li key={`hour-${minute}`} className="hour" aria-hidden="true" style={{ top: y(minute) }}>
-            <span className="mono">{formatTime(addMinutes(`${today}T06:00`, minute)).replace(':00', '')}</span>
+            <span className="mono">{formatTime(addMinutes(`${today}T00:00`, TIMELINE_FROM + minute)).replace(':00', '')}</span>
           </li>
         ))}
         {rows.map((row, i) => {
           if (row.type === 'free') {
-            return <li key={`free-${i}`} className={row.past ? 'free-row past' : 'free-row'} style={{ top: tops[i] }}>{formatDuration(row.minutes)} free</li>;
+            return <li key={`free-${i}`} className={row.past ? 'free-row past' : 'free-row'} style={{ top: tops[i], height: ROW.free }}>{formatDuration(row.minutes)} free</li>;
           }
           if (row.type === 'now') {
             return (
-              <li key="now" className="now-row" aria-label={`Now, ${formatTime(now)}`} style={{ top: drag ? y(timelineMinute(now, today)) - ROW.now / 2 : tops[i] }}>
+              <li key="now" className="now-row" aria-label={`Now, ${formatTime(now)}`} style={{ top: drag ? y(timelineMinute(now, today)) - ROW.now / 2 : tops[i], height: ROW.now }}>
                 <span className="mono">{formatTime(now).replace(/ [ap]m$/, '')}</span>
                 <span className="bar" />
               </li>
@@ -204,22 +196,14 @@ export function Today({ onAuthError }: { onAuthError: () => void }) {
 
       {weeks === null && <p className="hint">Loading the day.</p>}
       {weeks !== null && rows.length === 0 && <p className="hint">Nothing planned today.</p>}
-      {next && next.start!.slice(0, 10) !== today && <p className="hint">Next: {lineTime(next.start!, now)}, {next.title}</p>}
+      {next && next.start!.slice(0, 10) !== today && <p className="hint">Next: {formatDay(next.start!)} {formatTime(next.start!)}, {next.title}</p>}
 
       {!drag && (
         <button type="button" className="fab" aria-label="Add a task" onClick={() => setAdding(true)}>
           <PlusIcon size={26} aria-hidden="true" />
         </button>
       )}
-      {adding && (
-        <AddSheet
-          onClose={() => setAdding(false)}
-          onAdd={(title, duration, notes) => {
-            const created = api.createEntry({ kind: 'task', title, duration, notes });
-            save(created, undefined, async () => api.deleteEntry((await created).id));
-          }}
-        />
-      )}
+      {adding && <AddSheet save={save} onClose={() => setAdding(false)} />}
       {openEntry && <EntryDialog entry={openEntry} save={save} onClose={() => setOpenEntry(null)} />}
     </main>
   );
@@ -230,7 +214,7 @@ type RowProps = {
   now: string;
   style: CSSProperties;
   lifted: boolean;
-  hold: Partial<ReturnType<ReturnType<typeof useHoldDrag>>>;
+  hold: HTMLAttributes<HTMLLIElement>;
   onTick: () => void;
   onOpen: () => void;
 };
@@ -269,13 +253,8 @@ function EntryRow({ entry, now, style, lifted, hold, onTick, onOpen }: RowProps)
 }
 
 /** The + button's form, as a sheet from the bottom of the screen. Tap outside it or press Escape to close it. */
-function AddSheet({ onAdd, onClose }: { onAdd: (title: string, duration: number, notes: string | null) => void; onClose: () => void }) {
-  const ref = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    ref.current?.showModal();
-  }, []);
-
+function AddSheet({ save, onClose }: { save: Save; onClose: () => void }) {
+  const ref = useModal();
   return (
     <dialog
       ref={ref}
@@ -290,7 +269,7 @@ function AddSheet({ onAdd, onClose }: { onAdd: (title: string, duration: number,
         onCancel={onClose}
         onAdd={(title, duration, notes) => {
           onClose();
-          onAdd(title, duration, notes);
+          addEntry(save, { kind: 'task', title, duration, notes });
         }}
       />
     </dialog>

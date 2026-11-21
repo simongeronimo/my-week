@@ -9,7 +9,7 @@ import { HttpError, createEntry, createRoutine, deleteEntry, deleteRoutine, getW
 import { toIcs } from './ics.ts';
 import { addDays, isMonday, localNow, mondayOf } from '../shared/time.ts';
 
-export type AppOptions = {
+type AppOptions = {
   db: DB;
   appToken: string;
   agentToken?: string; // the planner agent: may read, and add tasks to the inbox
@@ -62,10 +62,10 @@ export function createApp({ db, appToken, agentToken, feedToken, timeZone, distD
     } else if (agentToken && sameToken(token, agentToken)) {
       const allowed =
         (c.req.method === 'GET' && AGENT_READS.includes(c.req.path)) || (c.req.method === 'POST' && c.req.path === '/api/entries');
-      if (!allowed) return c.json({ error: 'The agent token can only read and add tasks to the inbox' }, 403);
+      if (!allowed) throw new HttpError(403, 'The agent token can only read and add tasks to the inbox');
       c.set('who', 'agent');
     } else {
-      return c.json({ error: 'Missing or wrong token' }, 401);
+      throw new HttpError(401, 'Missing or wrong token');
     }
     await next();
   });
@@ -108,8 +108,8 @@ export function createApp({ db, appToken, agentToken, feedToken, timeZone, distD
 
   // iPhone Calendar can't send headers, so the feed token is part of the URL. It can only read.
   app.get('/calendar.ics', (c) => {
-    if (!feedToken) return c.json({ error: 'The calendar feed is off. Set FEED_TOKEN to turn it on.' }, 404);
-    if (!sameToken(c.req.query('token') ?? '', feedToken)) return c.json({ error: 'Missing or wrong token' }, 401);
+    if (!feedToken) throw new HttpError(404, 'The calendar feed is off. Set FEED_TOKEN to turn it on.');
+    if (!sameToken(c.req.query('token') ?? '', feedToken)) throw new HttpError(401, 'Missing or wrong token');
     const monday = mondayOf(now());
     const entries = [0, 7, 14, 21].flatMap((days) => getWeek(db, addDays(monday, days), now()).entries); // this week and the next three
     return c.body(toIcs(entries, new Date()), 200, { 'Content-Type': 'text/calendar; charset=utf-8' });

@@ -3,7 +3,7 @@ import type { Kind, NewRoutine, Routine } from '../shared/types.ts';
 import { formatDuration, formatTime } from '../shared/time.ts';
 import { api } from './api.ts';
 import { DAY_LETTERS, DAY_NAMES, daysLabel, daysPattern, minutesUntil } from './routines.ts';
-import { ErrorBanner, useErrors } from './page.tsx';
+import { ErrorBanner, useErrors, useSave } from './page.tsx';
 
 export function RoutinesPage({ onAuthError }: { onAuthError: () => void }) {
   const [routines, setRoutines] = useState<Routine[]>([]);
@@ -13,19 +13,7 @@ export function RoutinesPage({ onAuthError }: { onAuthError: () => void }) {
   useEffect(() => {
     load();
   }, [load]);
-
-  /** Sends a change, reloads the list, and reports whether the change worked. */
-  const save = async (change: Promise<unknown>): Promise<boolean> => {
-    let ok = true;
-    try {
-      await change;
-    } catch (err) {
-      ok = false;
-      fail(err);
-    }
-    await load();
-    return ok;
-  };
+  const { save } = useSave(load, fail);
 
   return (
     <div className="page">

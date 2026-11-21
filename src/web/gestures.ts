@@ -3,7 +3,7 @@ import type { MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent } fro
 import type { DateClickArg, EventDragStartArg } from '@fullcalendar/interaction';
 import type { Entry } from '../shared/types.ts';
 
-export type Sample = { x: number; y: number; t: number };
+type Sample = { x: number; y: number; t: number };
 type Velocity = { vx: number; vy: number };
 
 /** Pixels per millisecond the pointer must still be moving when you let go for a drag to count as a throw. Tune by feel. */
@@ -28,7 +28,7 @@ export function throwVelocity(samples: Sample[], releasedAt: number): Velocity |
   return Math.hypot(velocity.vx, velocity.vy) >= THROW_SPEED ? velocity : null;
 }
 
-export type Tap = { t: number; at: number }; // when the tap happened, and the grid time it landed on, both in ms
+type Tap = { t: number; at: number }; // when the tap happened, and the grid time it landed on, both in ms
 
 /** True when a tap lands on the same grid time as the one before, soon enough to be a double tap. */
 export function isDoubleTap(last: Tap | null, tap: Tap): boolean {
@@ -125,8 +125,8 @@ function flyAway(block: HTMLElement, box: DOMRect, left: number, top: number, { 
   flight.onfinish = () => copy.remove();
 }
 
-/** Hold a row still this long, in ms, before it lifts and drags. The same as a long press on the day grid. */
-const HOLD_MS = 400;
+/** Hold a row still this long, in ms, before it lifts and drags. The day grid's long press uses it too. */
+export const HOLD_MS = 400;
 /** Moving more than this many px during the hold means you're scrolling, not holding. */
 const HOLD_SLOP = 8;
 

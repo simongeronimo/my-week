@@ -1,25 +1,11 @@
-import { addDays, addMinutes, formatDay, formatTime } from '../shared/time.ts';
+import { addDays, addMinutes } from '../shared/time.ts';
 import type { Entry } from '../shared/types.ts';
 
-export type TodayView = { now: Entry | null; next: Entry | null; later: Entry[] };
-
-/**
- * Splits scheduled entries around a wall-clock time:
- * `now` is the latest-started entry still running (the dentist, not the work block around it),
- * `next` is the first entry after now, tomorrow if nothing is left today,
- * and `later` is the rest of today. Ticked and cancelled entries are left out.
- */
-export function todayView(entries: Entry[], now: string): TodayView {
-  const open = entries
-    .filter((e) => e.start !== null && e.status === 'open')
-    .sort((a, b) => a.start!.localeCompare(b.start!));
-  const running = open.filter((e) => e.start! <= now && addMinutes(e.start!, e.duration) > now);
-  const upcoming = open.filter((e) => e.start! > now);
-  return {
-    now: running.at(-1) ?? null,
-    next: upcoming[0] ?? null,
-    later: upcoming.slice(1).filter((e) => e.start!.slice(0, 10) === now.slice(0, 10)),
-  };
+/** The first open entry that starts after now, tomorrow or later if nothing is left today. */
+export function nextEntry(entries: Entry[], now: string): Entry | undefined {
+  return entries
+    .filter((e) => e.start !== null && e.status === 'open' && e.start > now)
+    .sort((a, b) => a.start!.localeCompare(b.start!))[0];
 }
 
 export type DayRow = { type: 'entry'; entry: Entry } | { type: 'free'; minutes: number; past: boolean } | { type: 'now' };
@@ -95,9 +81,9 @@ export function lanes(entries: Entry[]): Map<number, { col: number; cols: number
   return result;
 }
 
-/** The timeline you see while dragging on the phone covers the grid's hours, 6 am to midnight. */
-const TIMELINE_FROM = 6 * 60;
-const TIMELINE_TO = 24 * 60;
+/** The grid's hours in minutes, 6 am to midnight. The timeline you see while dragging on the phone covers the same. */
+export const TIMELINE_FROM = 6 * 60;
+export const TIMELINE_TO = 24 * 60;
 export const TIMELINE_MINUTES = TIMELINE_TO - TIMELINE_FROM;
 /** A drag moves a start in steps of this many minutes, like the grid. */
 export const STEP = 15;
@@ -113,11 +99,6 @@ export function shiftStart(start: string, duration: number, minutes: number): st
   const moved = minutesFrom(`${day}T00:00`, start) + Math.round(minutes / STEP) * STEP;
   const latest = Math.max(TIMELINE_FROM, TIMELINE_TO - duration);
   return addMinutes(`${day}T00:00`, Math.min(latest, Math.max(TIMELINE_FROM, moved)));
-}
-
-/** A line's time, with the day in front when it isn't today: '7:30 pm' or 'Thu 8:00 am'. */
-export function lineTime(start: string, now: string): string {
-  return start.slice(0, 10) === now.slice(0, 10) ? formatTime(start) : `${formatDay(start)} ${formatTime(start)}`;
 }
 
 /** Where the day grid opens: an hour before now on today, so what's coming is in view, and 7 am on other days. */

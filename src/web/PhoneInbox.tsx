@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { Entry, WeekView } from '../shared/types.ts';
 import { formatDuration, mondayOf } from '../shared/time.ts';
 import { firstLine, itemMeta } from './block.ts';
 import { api } from './api.ts';
-import { ErrorBanner, browserNow, useErrors } from './page.tsx';
-
-type Save = (change: Promise<unknown>) => Promise<void>;
+import { ErrorBanner, browserNow, useErrors, useReloadOnShow, useSave } from './page.tsx';
+import type { Save } from './page.tsx';
 
 /** The phone's inbox: overdue tasks and inbox tasks. Tap a box to tick a task. Placing them happens on the day page. */
 export function PhoneInbox({ onAuthError }: { onAuthError: () => void }) {
@@ -13,24 +12,8 @@ export function PhoneInbox({ onAuthError }: { onAuthError: () => void }) {
   const { message, fail, clear } = useErrors(onAuthError);
 
   const load = useCallback(() => api.week(mondayOf(browserNow())).then(setWeek, fail), [fail]);
-
-  useEffect(() => {
-    load();
-    const onShow = () => {
-      if (document.visibilityState === 'visible') load();
-    };
-    document.addEventListener('visibilitychange', onShow);
-    return () => document.removeEventListener('visibilitychange', onShow);
-  }, [load]);
-
-  const save: Save = async (change) => {
-    try {
-      await change;
-    } catch (err) {
-      fail(err);
-    }
-    await load();
-  };
+  useReloadOnShow(load);
+  const { save } = useSave(load, fail);
 
   const unfinished = week?.unfinished ?? [];
   const inbox = week?.inbox ?? [];
@@ -68,7 +51,7 @@ function InboxLine({ entry, unfinished, save }: { entry: Entry; unfinished: bool
       <div className="line-main">
         <button
           type="button"
-          className={unfinished ? 'tick over' : 'tick'}
+          className={unfinished ? 'tick overdue' : 'tick'}
           aria-label={`Tick ${entry.title}`}
           onClick={() => save(api.updateEntry(entry.id, { status: 'done' }))}
         >
@@ -76,7 +59,7 @@ function InboxLine({ entry, unfinished, save }: { entry: Entry; unfinished: bool
         </button>
         <span className="line-title">
           {entry.title}
-          {meta && <span className={unfinished ? 'm over' : 'm'}>{meta}</span>}
+          {meta && <span className={unfinished ? 'm overdue' : 'm'}>{meta}</span>}
           {entry.notes && <span className="desc">{firstLine(entry.notes)}</span>}
         </span>
         <span className="r mono">{formatDuration(entry.duration)}</span>

@@ -3,38 +3,32 @@ import FullCalendar from '@fullcalendar/react';
 import type { Entry, WeekView } from '../shared/types.ts';
 import { addDays, formatDate, mondayOf } from '../shared/time.ts';
 import { api } from './api.ts';
-import { gridOptions, placeDropped, toEvents, useGridExtras, useSave } from './Planner.tsx';
+import { gridOptions, toEvents, useGridExtras } from './Planner.tsx';
 import { InboxPanel } from './InboxPanel.tsx';
 import { EntryDialog } from './EntryDialog.tsx';
-import { ErrorBanner, browserNow, useErrors } from './page.tsx';
+import { HOLD_MS } from './gestures.ts';
+import { ErrorBanner, browserNow, useErrors, useReloadOnShow, useSave } from './page.tsx';
 import { scrollTimeFor } from './today.ts';
 
 /** The phone's arrange screen: one day of the grid, and a side panel of tasks to drag onto it. */
 export function Day({ onAuthError }: { onAuthError: () => void }) {
   const [day, setDay] = useState(() => browserNow().slice(0, 10));
-  const [week, setWeek] = useState<WeekView | null>(null); // null until the first load arrives
+  const [week, setWeek] = useState<WeekView | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [openEntry, setOpenEntry] = useState<Entry | null>(null);
   const { message, fail, clear } = useErrors(onAuthError);
   const calendarRef = useRef<FullCalendar>(null);
   const scrollTime = useMemo(() => scrollTimeFor(day, browserNow()), [day]); // fixed per day, so the grid never jumps
 
-  // Stepping days quickly sends several requests; drop any answer for a week no longer on screen.
+  // Stepping across weeks quickly sends several requests; drop any answer for a week no longer on screen.
+  const monday = mondayOf(day);
   const shownDay = useRef(day);
   shownDay.current = day;
   const load = useCallback(
-    () => api.week(mondayOf(day)).then((w) => { if (w.monday === mondayOf(shownDay.current)) setWeek(w); }, fail),
-    [day, fail],
+    () => api.week(monday).then((w) => { if (w.monday === mondayOf(shownDay.current)) setWeek(w); }, fail),
+    [monday, fail],
   );
-
-  useEffect(() => {
-    load();
-    const onShow = () => {
-      if (document.visibilityState === 'visible') load(); // the app comes back to the front
-    };
-    document.addEventListener('visibilitychange', onShow);
-    return () => document.removeEventListener('visibilitychange', onShow);
-  }, [load]);
+  useReloadOnShow(load);
 
   useEffect(() => {
     calendarRef.current?.getApi().gotoDate(day);
@@ -42,6 +36,7 @@ export function Day({ onAuthError }: { onAuthError: () => void }) {
 
   const { save, undo } = useSave(load, fail);
   const { calendarProps, overlays } = useGridExtras(save, undo, setWeek, setOpenEntry);
+  const events = useMemo(() => toEvents(week?.entries ?? []), [week]);
 
   const toPlace = week ? week.unfinished.length + week.inbox.length : 0;
 
@@ -67,10 +62,8 @@ export function Day({ onAuthError }: { onAuthError: () => void }) {
           initialDate={day}
           scrollTime={scrollTime}
           dayHeaders={false}
-          eventLongPressDelay={400}
-          droppable
-          events={toEvents(week?.entries ?? [])}
-          drop={(info) => placeDropped(save, info)}
+          eventLongPressDelay={HOLD_MS}
+          events={events}
           {...calendarProps}
         />
       </div>

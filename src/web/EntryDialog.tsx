@@ -1,28 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
-import type { Entry } from '../shared/types.ts';
+import { useState } from 'react';
+import type { Entry, EntryChanges } from '../shared/types.ts';
 import { formatDay, formatTime, fromDate } from '../shared/time.ts';
 import { api } from './api.ts';
-import type { Save } from './Planner.tsx';
+import { addEntry, saveUpdate, useModal } from './page.tsx';
+import type { Save } from './page.tsx';
 import { QuickAdd } from './InboxPanel.tsx';
 
 type Props = { entry: Entry; save: Save; onClose: () => void };
 
-/** Actions for one entry, in the browser's own <dialog>, so Escape and focus handling come for free. */
+/** Actions for one entry, in the browser's own <dialog>. */
 export function EntryDialog({ entry, save, onClose }: Props) {
-  const ref = useRef<HTMLDialogElement>(null);
+  const ref = useModal();
   const [title, setTitle] = useState(entry.title);
   const [notes, setNotes] = useState(entry.notes ?? '');
 
-  useEffect(() => {
-    ref.current?.showModal();
-  }, []);
-
-  /** Closes the dialog and saves; reverse is how Ctrl+Z puts the entry back as it was. */
-  const act = (change: Promise<unknown>, reverse?: () => Promise<unknown>) => {
+  const update = (changes: EntryChanges, before?: EntryChanges) => {
     onClose();
-    save(change, undefined, reverse);
+    saveUpdate(save, entry, changes, before);
   };
-  const restore = (fields: Parameters<typeof api.updateEntry>[1]) => () => api.updateEntry(entry.id, fields);
   const isTask = entry.kind === 'task';
   const done = entry.status === 'done';
 
@@ -31,7 +26,7 @@ export function EntryDialog({ entry, save, onClose }: Props) {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          act(api.updateEntry(entry.id, { title: title.trim(), notes: notes.trim() || null }), restore({ title: entry.title, notes: entry.notes }));
+          update({ title: title.trim(), notes: notes.trim() || null });
         }}
       >
         <h2 id="entry-dialog-title">{isTask ? 'Task' : 'Event'}</h2>
@@ -41,18 +36,23 @@ export function EntryDialog({ entry, save, onClose }: Props) {
         <textarea id="entry-notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
         <div className="actions">
           {isTask && (
-            <button type="button" className="btn" onClick={() => act(api.updateEntry(entry.id, { status: done ? 'open' : 'done' }), restore({ status: entry.status }))}>
+            <button type="button" className="btn" onClick={() => update({ status: done ? 'open' : 'done' })}>
               {done ? 'Untick' : 'Tick'}
             </button>
           )}
           {isTask && entry.start && (
-            <button type="button" className="btn" onClick={() => act(api.updateEntry(entry.id, { start: null }), restore({ start: entry.start, status: entry.status }))}>Back to inbox</button>
+            // the server also reopens a ticked task that goes back to the inbox, so undo restores the status too
+            <button type="button" className="btn" onClick={() => update({ start: null }, { start: entry.start, status: entry.status })}>
+              Back to inbox
+            </button>
           )}
           <button
             type="button"
             className="btn"
             onClick={() => {
-              if (window.confirm(`Delete "${entry.title}" for good?`)) act(api.deleteEntry(entry.id));
+              if (!window.confirm(`Delete "${entry.title}" for good?`)) return;
+              onClose();
+              save(api.deleteEntry(entry.id));
             }}
           >
             Delete
@@ -69,12 +69,8 @@ export function EntryDialog({ entry, save, onClose }: Props) {
 
 /** Adds a task at one time on the grid. A double click or double tap on an empty spot opens it. */
 export function NewTaskDialog({ start, save, onClose }: { start: Date; save: Save; onClose: () => void }) {
-  const ref = useRef<HTMLDialogElement>(null);
+  const ref = useModal();
   const at = fromDate(start);
-
-  useEffect(() => {
-    ref.current?.showModal();
-  }, []);
 
   return (
     <dialog ref={ref} className="entry-dialog" onClose={onClose} aria-label="New task">
@@ -84,8 +80,7 @@ export function NewTaskDialog({ start, save, onClose }: { start: Date; save: Sav
         onCancel={onClose}
         onAdd={(title, duration, notes) => {
           onClose();
-          const created = api.createEntry({ kind: 'task', title, start: at, duration, notes });
-          save(created, undefined, async () => api.deleteEntry((await created).id));
+          addEntry(save, { kind: 'task', title, start: at, duration, notes });
         }}
       />
     </dialog>

@@ -72,14 +72,17 @@ export function formatDuration(minutes: number): string {
   return [h ? `${h}h` : '', m ? `${m}m` : ''].filter(Boolean).join(' ');
 }
 
+const DAY = new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: 'UTC' });
+const DATE = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+
 /** '2026-11-23T19:30' becomes 'Mon'. */
 export function formatDay(dateOrTime: string): string {
-  return new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: 'UTC' }).format(utc(dateOrTime));
+  return DAY.format(utc(dateOrTime));
 }
 
 /** '2026-11-25T14:10' becomes 'Wed 25 Nov'. */
 export function formatDate(dateOrTime: string): string {
-  return new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(utc(dateOrTime));
+  return DATE.format(utc(dateOrTime));
 }
 
 /** '2026-11-23' becomes '23 to 29 Nov 2026'. */

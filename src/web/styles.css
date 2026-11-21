@@ -43,7 +43,8 @@ button, input, textarea { font: inherit; color: inherit; }
 .muted { color: var(--muted); }
 
 .btn { height: 36px; padding: 0 14px; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper); font-weight: 500; cursor: pointer; }
-.btn:active { transform: translateY(1px); }
+.btn:active, .icon-btn:active, .fab:active { transform: translateY(1px); }
+a.btn { display: inline-flex; align-items: center; color: inherit; text-decoration: none; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 input, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper); }
 input::placeholder, textarea::placeholder { color: var(--muted); }
@@ -60,11 +61,13 @@ label { font-size: 12px; font-weight: 600; }
 .grid { flex: 1; min-width: 0; }
 
 /* Inbox panel */
-.inbox { width: 300px; flex: none; display: flex; flex-direction: column; gap: 22px; overflow-y: auto; }
+.inbox { display: flex; flex-direction: column; gap: 22px; }
+.body > .inbox { width: 300px; flex: none; overflow-y: auto; } /* the desktop's panel; the phone's drawer scrolls on its own */
 .inbox h2 { margin: 0; display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; }
 .count { font: 400 12px var(--mono); color: var(--muted); }
 .hint { margin: 4px 0 8px; font-size: 12px; color: var(--muted); }
-.quick-add { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper); }
+.quick-add { display: flex; flex-direction: column; gap: 8px; padding: 14px; background: var(--paper); }
+.inbox .quick-add, .routine-form { border: 1px solid var(--ink); border-radius: var(--radius); } /* in a dialog or sheet, the dialog is the box */
 .add-desc { align-self: flex-start; padding: 0; border: 0; background: none; color: var(--accent); font-size: 12px; font-weight: 500; cursor: pointer; }
 .desc { font-size: 12px; font-weight: 400; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } /* a description's first line under a title */
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -72,9 +75,9 @@ label { font-size: 12px; font-weight: 600; }
 .chip.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper); cursor: grab; }
-.item.unf { border: 1.5px solid var(--over); }
+.item.overdue { border: 1.5px solid var(--over); }
 .item .sig { width: 10px; flex: none; font: 500 14px/18px var(--mono); }
-.item.unf .sig, .item.unf .m { color: var(--over); }
+.item.overdue .sig, .item.overdue .m { color: var(--over); }
 .item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; }
 .item .t { font-size: 13px; font-weight: 500; line-height: 18px; }
 .item .m { font: 400 11px/16px var(--mono); color: var(--muted); }
@@ -95,13 +98,13 @@ label { font-size: 12px; font-weight: 600; }
 .fc .k-task { background: var(--paper); border: 1px solid var(--ink); color: var(--ink); }
 .fc .k-event { background: var(--ink); border: 1px solid var(--ink); color: var(--paper); }
 .fc .routine { background: var(--routine); border-color: var(--accent); color: var(--ink); }
-.fc .k-task.routine { background: transparent; border: 1px dashed var(--muted); color: var(--ink); }
+.fc .k-task.routine { background: transparent; border: 1px dashed var(--muted); }
 .fc .done .ttl { text-decoration: line-through; }
 .fc .past { opacity: 0.75; }
 .fc .done { opacity: 0.55; }
 .fc .fc-v-event.overdue { border: 1.5px solid var(--over); } /* beats .k-task.routine, so overdue habits turn red too */
 .fc .overdue .sig, .fc .overdue .ttl { color: var(--over); }
-.blk { height: 100%; overflow: hidden; padding: 3px 6px; }
+.blk { height: 100%; overflow: hidden; padding: 3px 6px; container-type: size; }
 .blk .r1 { display: flex; align-items: baseline; gap: 5px; font-size: 12px; font-weight: 500; line-height: 15px; }
 .blk .sig { flex: none; font-family: var(--mono); }
 .blk .sig.box { position: relative; width: 12px; height: 12px; display: inline-grid; place-items: center; align-self: center; border: 1px solid currentColor; border-radius: 2px; font-size: 9px; line-height: 1; } /* a task's tick box: tap it to tick */
@@ -111,17 +114,15 @@ label { font-size: 12px; font-weight: 600; }
 .fc-timegrid-event-short .blk { padding-block: 0; }
 .fc-timegrid-event-short .blk .tm { display: none; }
 /* A block shows its description only when it has room: one line from about 1h 30m on the week grid, three lines from 2h */
-.blk { container-type: size; }
 .blk .desc { display: none; font-size: 11px; line-height: 15px; color: inherit; opacity: 0.75; white-space: normal; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
 @container (min-height: 45px) { .blk .desc { display: -webkit-box; } }
 @container (min-height: 75px) { .blk .desc { -webkit-line-clamp: 3; } }
 
 /* Entry dialog and token screen */
 .entry-dialog { width: min(420px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper); color: var(--ink); }
-.entry-dialog::backdrop { background: rgb(28 28 31 / 0.25); }
+.entry-dialog::backdrop, .sheet::backdrop { background: rgb(28 28 31 / 0.25); }
 .entry-dialog form, .token-screen form { display: flex; flex-direction: column; gap: 8px; padding: 18px; }
 .entry-dialog h2 { margin: 0 0 4px; font-size: 15px; }
-.entry-dialog .quick-add { border: 0; } /* the new task dialog already has the dialog's border */
 .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .actions.end { justify-content: flex-end; }
 .token-screen { min-height: 100dvh; display: grid; place-items: center; }
@@ -129,7 +130,6 @@ label { font-size: 12px; font-weight: 600; }
 .token-screen h1 { margin: 0 0 8px; font-size: 20px; }
 
 /* Routines page */
-a.btn { display: inline-flex; align-items: center; color: inherit; text-decoration: none; }
 fieldset { margin: 0; padding: 0; border: 0; }
 legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
 .page { max-width: 640px; margin: 0 auto; padding: 16px 24px 40px; display: flex; flex-direction: column; gap: 16px; }
@@ -139,14 +139,14 @@ legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
 
 /* Phone pages: 44px touch targets, and 16px inputs so iOS doesn't zoom in */
 .phone { max-width: 480px; margin: 0 auto; padding: 20px 16px 32px; display: flex; flex-direction: column; gap: 18px; }
-.phone-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.phone-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
 .phone-top h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .phone section { display: flex; flex-direction: column; gap: 6px; }
 .sh { margin: 0; display: flex; align-items: baseline; justify-content: space-between; font-size: 13px; font-weight: 600; }
 .sh span { font: 400 12px var(--mono); color: var(--muted); }
 .phone .btn, .phone .chip { height: 44px; min-width: 44px; }
 .phone input { height: 44px; font-size: 16px; }
-.phone textarea { font-size: 16px; } /* 16px stops iOS zooming in while you type */
+.phone textarea { font-size: 16px; }
 .phone .add-desc { min-height: 44px; }
 .rows { list-style: none; margin: 0; padding: 0; }
 .line { padding: 2px 0; border-bottom: 1px solid var(--line); }
@@ -155,16 +155,15 @@ legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
 /* The tick box: a 24px square in a 44px tap target. • is open, × is done. */
 .tick { width: 44px; height: 44px; flex: none; display: grid; place-items: center; padding: 0; border: 0; background: none; color: var(--ink); cursor: pointer; }
 .tick .box { width: 24px; height: 24px; display: grid; place-items: center; border: 1.5px solid currentColor; border-radius: var(--radius); background: var(--paper); font: 600 16px/1 var(--mono); }
-.tick.over { color: var(--over); }
+.tick.overdue { color: var(--over); }
 .ev { width: 44px; flex: none; text-align: center; font: 500 20px/1 var(--mono); color: var(--muted); }
 .line-title { flex: 1; min-width: 0; min-height: 44px; display: flex; flex-direction: column; justify-content: center; padding: 0; border: 0; background: none; text-align: left; font-size: 15px; font-weight: 500; cursor: pointer; }
 .line-title .m { font: 400 11px var(--mono); color: var(--muted); }
-.line-title .m.over { color: var(--over); }
+.line-title .m.overdue { color: var(--over); }
 .line .r { font-size: 12px; color: var(--muted); }
 .mini { height: 44px; padding: 0 10px; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper); color: var(--ink); font-size: 12px; font-weight: 500; cursor: pointer; }
 .token-screen input { height: 44px; font-size: 16px; } /* 16px stops iOS zooming in while you paste the token */
 
-.phone-top:has(> nav) { flex-wrap: wrap; align-items: center; }
 .phone-top nav { display: flex; gap: 6px; }
 
 /* Today page: the day as a compact list. Holding a row turns the list into a timeline until you let go. */
@@ -173,9 +172,8 @@ legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
 .today-top h1 { font-size: 22px; letter-spacing: -0.01em; }
 .today-top nav { gap: 8px; }
 .icon-btn { position: relative; width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper); color: var(--ink); }
-.icon-btn:active, .fab:active { transform: translateY(1px); }
 .badge { position: absolute; top: -7px; right: -7px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: var(--radius); background: var(--ink); color: var(--paper); font: 600 11px/18px var(--mono); text-align: center; }
-.badge.over { background: var(--over); } /* something is overdue */
+.badge.overdue { background: var(--over); }
 
 /* Every row is placed by its top, so switching between list and timeline animates on its own */
 .day-list { position: relative; margin: 0; padding: 0; list-style: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; transition: height 0.25s ease; }
@@ -195,9 +193,9 @@ legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
 .entry.past, .entry.done { opacity: 0.55; }
 .entry.done .ttl { text-decoration: line-through; }
 .entry.overdue .tick, .entry.overdue .time { color: var(--over); } /* time passed without a tick */
-.free-row { display: flex; align-items: center; height: 24px; padding-left: 106px; font-size: 12px; color: var(--muted); }
+.free-row { display: flex; align-items: center; padding-left: 106px; font-size: 12px; color: var(--muted); }
 .free-row.past { opacity: 0.55; }
-.now-row { display: flex; align-items: center; height: 22px; color: var(--accent); }
+.now-row { display: flex; align-items: center; color: var(--accent); }
 .now-row .mono { width: 62px; font-size: 11px; font-weight: 600; }
 .now-row .bar { flex: 1; height: 2px; background: currentColor; }
 
@@ -232,8 +230,7 @@ legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
   border: 0; border-top: 1px solid var(--ink); border-radius: var(--radius) var(--radius) 0 0;
   background: var(--paper); color: var(--ink); animation: sheet-up 0.2s ease-out;
 }
-.sheet::backdrop { background: rgb(28 28 31 / 0.25); }
-.sheet .quick-add { border: 0; padding: 18px 16px max(24px, env(safe-area-inset-bottom)); }
+.sheet .quick-add { padding: 18px 16px max(24px, env(safe-area-inset-bottom)); }
 @keyframes sheet-up { from { transform: translateY(100%); } }
 @media (prefers-reduced-motion: reduce) {
   .day-list, .day-list > li { transition: none; }
@@ -260,7 +257,6 @@ body:has(> .fc-event-dragging) .drawer { transform: translateX(100%); } /* FullC
 body:has(> .fc-event-dragging) .drawer-backdrop { display: none; } /* FullCalendar only drops where the grid is the topmost element */
 .drawer-top { display: flex; align-items: center; justify-content: space-between; }
 .drawer-top h2 { margin: 0; font-size: 15px; font-weight: 600; }
-.drawer .inbox { width: auto; overflow: visible; }
 .drawer .item { min-height: 44px; align-items: center; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; } /* not on the drawer itself: iOS won't type into an input under user-select: none */
 @media (prefers-reduced-motion: reduce) { .drawer { transition: none; } }
 
