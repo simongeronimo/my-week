@@ -41,7 +41,7 @@ export function Day({ onAuthError }: { onAuthError: () => void }) {
   }, [day]);
 
   const { save, undo } = useSave(load, fail);
-  const { calendarProps, overlays } = useGridExtras(save, undo, setWeek);
+  const { calendarProps, overlays } = useGridExtras(save, undo, setWeek, setOpenEntry);
 
   const toPlace = week ? week.unfinished.length + week.inbox.length : 0;
 
@@ -72,7 +72,6 @@ export function Day({ onAuthError }: { onAuthError: () => void }) {
           events={toEvents(week?.entries ?? [])}
           drop={(info) => placeDropped(save, info)}
           {...calendarProps}
-          eventClick={(info) => setOpenEntry(info.event.extendedProps.entry as Entry)}
         />
       </div>
       {panelOpen && <div className="drawer-backdrop" aria-hidden="true" onClick={() => setPanelOpen(false)} />}

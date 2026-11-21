@@ -1,20 +1,42 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Entry, WeekView } from '../shared/types.ts';
-import { addDays, addMinutes, formatDate, formatTime, mondayOf } from '../shared/time.ts';
+import type { CSSProperties } from 'react';
+import { PlusIcon, SquaresFourIcon, TrayIcon } from '@phosphor-icons/react';
+import type { Entry, EntryChanges, WeekView } from '../shared/types.ts';
+import { addDays, addMinutes, formatDate, formatDuration, formatTime, mondayOf } from '../shared/time.ts';
 import { api } from './api.ts';
-import { lineTime, timeRange, todayView, until } from './today.ts';
-import { MoveForm } from './MoveForm.tsx';
+import { STEP, TIMELINE_MINUTES, dayRows, lanes, lineTime, shiftStart, timelineMinute, todayView } from './today.ts';
 import { QuickAdd } from './InboxPanel.tsx';
+import { EntryDialog } from './EntryDialog.tsx';
+import { useSave } from './Planner.tsx';
+import { useHoldDrag } from './gestures.ts';
 import { firstLine } from './block.ts';
 import { ErrorBanner, browserNow, useErrors } from './page.tsx';
 
-type Save = (change: Promise<unknown>) => Promise<void>;
+/** Row heights in px. They're fixed, so the list and the timeline are both plain positions the browser can animate between. */
+const ROW = { entry: 52, free: 24, now: 22 };
+const ROW_GAP = 2;
+/** Width in px of the list's time column, and of the hour labels in the timeline. */
+const AXIS = 62;
+/** The shortest block in the timeline, in px, so a 15-minute task still shows its title. */
+const MIN_BLOCK = 20;
+/** The timeline's hour labels, in minutes from 6 am: every two hours. */
+const HOURS = Array.from({ length: 10 }, (_, i) => i * 120);
 
-/** The phone's home screen: now, next, the rest of today, and a quick way to add to the inbox. */
+/**
+ * A row being held and dragged. delta is how far it has moved, in minutes. origin is where 6 am sits
+ * in the list, in px from its top, scale is px per minute, and height is the timeline's height in px.
+ */
+type Drag = { id: number; delta: number; origin: number; scale: number; height: number };
+
+/** The phone's home screen: today as a compact list. Hold a row to drag it, and the list turns into a timeline until you let go. */
 export function Today({ onAuthError }: { onAuthError: () => void }) {
   const [weeks, setWeeks] = useState<WeekView[] | null>(null); // null until the first load arrives
   const [now, setNow] = useState(browserNow);
-  const [moving, setMoving] = useState<number | null>(null);
+  const [openEntry, setOpenEntry] = useState<Entry | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [drag, setDrag] = useState<Drag | null>(null);
+  const dragRef = useRef<Drag | null>(null); // the same drag, for touch handlers that run before React renders again
+  const listRef = useRef<HTMLOListElement>(null);
   const { message, fail, clear } = useErrors(onAuthError);
   const loadedDay = useRef('');
 
@@ -47,84 +69,230 @@ export function Today({ onAuthError }: { onAuthError: () => void }) {
     };
   }, [load]);
 
-  const save: Save = async (change) => {
-    try {
-      await change;
-      setMoving(null);
-    } catch (err) {
-      fail(err);
-    }
-    await load();
-  };
+  const { save } = useSave(load, fail);
 
-  const view = weeks === null ? null : todayView(weeks.flatMap((w) => w.entries), now);
-  const line = (entry: Entry, big = false) => (
-    <Line
-      key={entry.id}
-      entry={entry}
-      big={big}
-      now={now}
-      moving={moving === entry.id}
-      onMove={(on) => setMoving(on ? entry.id : null)}
-      save={save}
-    />
-  );
+  const entries = weeks?.flatMap((w) => w.entries) ?? [];
+  const today = now.slice(0, 10);
+  const rows = dayRows(entries, now);
+  const next = todayView(entries, now).next;
+  const inbox = weeks?.[0]?.inbox.length ?? 0;
+  const overdue = weeks?.[0]?.unfinished.length ?? 0;
+
+  /** Changes an entry on screen at once, then saves it, with a way back for Ctrl+Z. */
+  function change(entry: Entry, changes: EntryChanges) {
+    const before = Object.fromEntries(Object.keys(changes).map((key) => [key, entry[key as keyof EntryChanges]])) as EntryChanges;
+    setWeeks((ws) => ws && ws.map((w) => ({ ...w, entries: w.entries.map((e) => (e.id === entry.id ? { ...e, ...changes } : e)) })));
+    save(api.updateEntry(entry.id, changes), undefined, () => api.updateEntry(entry.id, before));
+  }
+
+  const setDragNow = (d: Drag | null) => {
+    dragRef.current = d;
+    setDrag(d);
+  };
+  const hold = useHoldDrag({
+    start: (id) => {
+      const box = listRef.current!.getBoundingClientRect();
+      const top = Math.max(box.top, 12); // the timeline fills the screen from the list's top down, even when scrolled
+      const height = window.innerHeight - top - 24;
+      setDragNow({ id, delta: 0, origin: top - box.top, scale: height / TIMELINE_MINUTES, height });
+      navigator.vibrate?.(10);
+    },
+    move: (dy) => {
+      const d = dragRef.current;
+      if (!d) return;
+      const delta = Math.round(dy / d.scale / STEP) * STEP; // only redraw when it moves a whole step
+      if (delta !== d.delta) setDragNow({ ...d, delta });
+    },
+    end: (drop) => {
+      const d = dragRef.current;
+      setDragNow(null);
+      const entry = entries.find((e) => e.id === d?.id);
+      if (!drop || !d || !entry) return;
+      const start = shiftStart(entry.start!, entry.duration, d.delta);
+      if (start !== entry.start) change(entry, { start });
+    },
+  });
+
+  // Where each row sits: stacked in the list, or by its time in the timeline while a row is dragged.
+  let listY = 0;
+  const tops = rows.map((row) => {
+    const top = listY;
+    listY += ROW[row.type] + ROW_GAP;
+    return top;
+  });
+  const listHeight = Math.max(0, listY - ROW_GAP);
+  const lane = drag && lanes(rows.flatMap((row) => (row.type === 'entry' ? [row.entry] : [])));
+  const lifted = drag && entries.find((e) => e.id === drag.id);
+  const liftedStart = drag && lifted ? shiftStart(lifted.start!, lifted.duration, drag.delta) : null;
+  const y = (minute: number) => drag!.origin + minute * drag!.scale;
+
+  function place(entry: Entry, i: number): CSSProperties {
+    if (!drag) return { top: tops[i], height: ROW.entry, left: 0, width: '100%' };
+    const isLifted = entry.id === drag.id;
+    const start = isLifted ? liftedStart! : entry.start!;
+    const from = timelineMinute(start, today);
+    const to = timelineMinute(addMinutes(start, entry.duration), today);
+    const { col, cols } = isLifted ? { col: 0, cols: 1 } : lane!.get(entry.id)!;
+    return {
+      top: y(from),
+      height: Math.max(MIN_BLOCK, (to - from) * drag.scale),
+      left: `calc(${AXIS}px + (100% - ${AXIS}px) * ${col / cols})`,
+      width: `calc((100% - ${AXIS}px) / ${cols} - 2px)`,
+    };
+  }
 
   return (
-    <main className="phone">
-      <header className="phone-top">
-        <h1>{formatDate(now)}</h1>
-        <span className="mono muted">{formatTime(now)}</span>
+    <main className="phone today">
+      <header className="phone-top today-top">
+        <div className="when">
+          <h1>{formatDate(now)}</h1>
+          <span className="mono muted">{formatTime(now)}</span>
+        </div>
+        <nav aria-label="Pages">
+          <a className="icon-btn" href="/day" aria-label="Arrange day" title="Arrange day">
+            <SquaresFourIcon size={22} aria-hidden="true" />
+          </a>
+          <a className="icon-btn" href="/inbox" aria-label={`Inbox, ${inbox + overdue} tasks${overdue ? `, ${overdue} overdue` : ''}`} title="Inbox">
+            <TrayIcon size={22} aria-hidden="true" />
+            {inbox + overdue > 0 && <span className={overdue ? 'badge over' : 'badge'}>{inbox + overdue}</span>}
+          </a>
+        </nav>
       </header>
       <ErrorBanner message={message} onDismiss={clear} />
-      <section>
-        <h2 className="sh">Now {view?.now && <span>ends in {until(now, addMinutes(view.now.start!, view.now.duration))}</span>}</h2>
-        {view === null ? <p className="hint">Loading the week.</p> : view.now ? <ul className="rows">{line(view.now, true)}</ul> : <p className="hint">Nothing planned right now.</p>}
-      </section>
-      <section>
-        <h2 className="sh">Next {view?.next && <span>in {until(now, view.next.start!)}</span>}</h2>
-        {view === null ? null : view.next ? <ul className="rows">{line(view.next)}</ul> : <p className="hint">Nothing else planned this week.</p>}
-      </section>
-      {view !== null && view.later.length > 0 && (
-        <section>
-          <h2 className="sh">Later today</h2>
-          <ul className="rows">{view.later.map((e) => line(e))}</ul>
-        </section>
+
+      <ol
+        ref={listRef}
+        className={drag ? 'day-list timeline' : 'day-list'}
+        aria-label="Today"
+        style={{ height: drag ? Math.max(listHeight, drag.origin + drag.height) : listHeight }}
+      >
+        {drag && HOURS.map((minute) => (
+          <li key={`hour-${minute}`} className="hour" aria-hidden="true" style={{ top: y(minute) }}>
+            <span className="mono">{formatTime(addMinutes(`${today}T06:00`, minute)).replace(':00', '')}</span>
+          </li>
+        ))}
+        {rows.map((row, i) => {
+          if (row.type === 'free') {
+            return <li key={`free-${i}`} className={row.past ? 'free-row past' : 'free-row'} style={{ top: tops[i] }}>{formatDuration(row.minutes)} free</li>;
+          }
+          if (row.type === 'now') {
+            return (
+              <li key="now" className="now-row" aria-label={`Now, ${formatTime(now)}`} style={{ top: drag ? y(timelineMinute(now, today)) - ROW.now / 2 : tops[i] }}>
+                <span className="mono">{formatTime(now).replace(/ [ap]m$/, '')}</span>
+                <span className="bar" />
+              </li>
+            );
+          }
+          const { entry } = row;
+          return (
+            <EntryRow
+              key={entry.id}
+              entry={entry}
+              now={now}
+              style={place(entry, i)}
+              lifted={drag?.id === entry.id}
+              hold={entry.start!.slice(0, 10) === today ? hold(entry.id) : {}} // last night's entries stay put
+              onTick={() => change(entry, { status: entry.status === 'done' ? 'open' : 'done' })}
+              onOpen={() => setOpenEntry(entry)}
+            />
+          );
+        })}
+        {liftedStart && (
+          <li className="drag-time mono" aria-hidden="true" style={{ top: y(timelineMinute(liftedStart, today)) }}>{formatTime(liftedStart)}</li>
+        )}
+      </ol>
+
+      {weeks === null && <p className="hint">Loading the day.</p>}
+      {weeks !== null && rows.length === 0 && <p className="hint">Nothing planned today.</p>}
+      {next && next.start!.slice(0, 10) !== today && <p className="hint">Next: {lineTime(next.start!, now)}, {next.title}</p>}
+
+      {!drag && (
+        <button type="button" className="fab" aria-label="Add a task" onClick={() => setAdding(true)}>
+          <PlusIcon size={26} aria-hidden="true" />
+        </button>
       )}
-      <a className="btn primary arrange" href="/day">Arrange day</a>
-      <div className="phone-links">
-        <a className="btn" href="/inbox">Inbox ({weeks?.[0]?.inbox.length ?? 0})</a>
-        <a className="btn" href="/inbox">Unfinished ({weeks?.[0]?.unfinished.length ?? 0})</a>
-      </div>
-      <QuickAdd onAdd={(title, duration, notes) => save(api.createEntry({ kind: 'task', title, duration, notes }))} />
+      {adding && (
+        <AddSheet
+          onClose={() => setAdding(false)}
+          onAdd={(title, duration, notes) => {
+            const created = api.createEntry({ kind: 'task', title, duration, notes });
+            save(created, undefined, async () => api.deleteEntry((await created).id));
+          }}
+        />
+      )}
+      {openEntry && <EntryDialog entry={openEntry} save={save} onClose={() => setOpenEntry(null)} />}
     </main>
   );
 }
 
-type LineProps = { entry: Entry; big: boolean; now: string; moving: boolean; onMove: (on: boolean) => void; save: Save };
+type RowProps = {
+  entry: Entry;
+  now: string;
+  style: CSSProperties;
+  lifted: boolean;
+  hold: Partial<ReturnType<ReturnType<typeof useHoldDrag>>>;
+  onTick: () => void;
+  onOpen: () => void;
+};
 
-/** One entry: time, tick button (tasks), title (tap to move), migration count and To inbox (tasks). */
-function Line({ entry, big, now, moving, onMove, save }: LineProps) {
+/** One entry: time, a tick box for tasks (○ for events), the title that opens the dialog, and its length. */
+function EntryRow({ entry, now, style, lifted, hold, onTick, onOpen }: RowProps) {
+  const end = addMinutes(entry.start!, entry.duration);
+  const running = entry.start! <= now && end > now;
+  const past = end <= now;
+  const done = entry.status === 'done';
   const isTask = entry.kind === 'task';
+  const classes = [
+    'entry', `k-${entry.kind}`, entry.routine_id !== null && 'routine', running && 'running', past && 'past',
+    done && 'done', past && isTask && !done && 'overdue', lifted && 'lifted',
+  ];
   return (
-    <li className={big ? 'line big' : 'line'}>
-      <div className="line-main">
-        <span className="time mono">{big ? timeRange(entry.start!, entry.duration) : lineTime(entry.start!, now)}</span>
-        {isTask ? (
-          <button type="button" className="tick" aria-label={`Tick ${entry.title}`} onClick={() => save(api.updateEntry(entry.id, { status: 'done' }))}>•</button>
-        ) : (
-          <span className="ev" aria-hidden="true">○</span>
-        )}
-        <button type="button" className="line-title" aria-expanded={moving} onClick={() => onMove(!moving)}>
-          {entry.title}
-          {entry.notes && <span className="desc">{firstLine(entry.notes)}</span>}
+    <li className={classes.filter(Boolean).join(' ')} style={style} {...hold}>
+      <span className="time mono">{formatTime(entry.start!)}</span>
+      {isTask ? (
+        <button type="button" className="tick" aria-label={`${done ? 'Untick' : 'Tick'} ${entry.title}`} onClick={onTick}>
+          <span className="box" aria-hidden="true">{done ? '×' : '•'}</span>
         </button>
-        {entry.migrations > 0 && <span className="mig mono">&gt;{entry.migrations}</span>}
-        {isTask && (
-          <button type="button" className="mini" onClick={() => save(api.updateEntry(entry.id, { start: null }))}>To inbox</button>
-        )}
-      </div>
-      {moving && <MoveForm entry={entry} onSave={(start) => save(api.updateEntry(entry.id, { start }))} onCancel={() => onMove(false)} />}
+      ) : (
+        <span className="ev" aria-hidden="true">○</span>
+      )}
+      <button type="button" className="what" onClick={onOpen}>
+        <span className="ttl">{entry.title}</span>
+        {running ? <span className="sub now-sub">now, until {formatTime(end)}</span> : entry.notes && <span className="sub">{firstLine(entry.notes)}</span>}
+      </button>
+      <span className="len mono">
+        {entry.migrations > 0 && <span className="mig">&gt;{entry.migrations} </span>}
+        {formatDuration(entry.duration)}
+      </span>
     </li>
+  );
+}
+
+/** The + button's form, as a sheet from the bottom of the screen. Tap outside it or press Escape to close it. */
+function AddSheet({ onAdd, onClose }: { onAdd: (title: string, duration: number, notes: string | null) => void; onClose: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    ref.current?.showModal();
+  }, []);
+
+  return (
+    <dialog
+      ref={ref}
+      className="sheet"
+      aria-label="New task"
+      onClose={onClose}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose(); // a tap on the dimmed backdrop lands on the dialog itself
+      }}
+    >
+      <QuickAdd
+        onCancel={onClose}
+        onAdd={(title, duration, notes) => {
+          onClose();
+          onAdd(title, duration, notes);
+        }}
+      />
+    </dialog>
   );
 }

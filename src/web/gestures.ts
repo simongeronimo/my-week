@@ -1,4 +1,5 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
+import type { MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent } from 'react';
 import type { DateClickArg, EventDragStartArg } from '@fullcalendar/interaction';
 import type { Entry } from '../shared/types.ts';
 
@@ -122,4 +123,94 @@ function flyAway(block: HTMLElement, box: DOMRect, left: number, top: number, { 
     { duration: still ? 1 : 300, easing: 'ease-out' },
   );
   flight.onfinish = () => copy.remove();
+}
+
+/** Hold a row still this long, in ms, before it lifts and drags. The same as a long press on the day grid. */
+const HOLD_MS = 400;
+/** Moving more than this many px during the hold means you're scrolling, not holding. */
+const HOLD_SLOP = 8;
+
+type HoldDrag = {
+  /** The row with this id was held long enough and now drags. */
+  start: (id: number) => void;
+  /** How far the finger or mouse has moved since the press, in px, up negative and down positive. */
+  move: (dy: number) => void;
+  /** The drag ended. drop is false when the browser cancelled the touch, like for an incoming call. */
+  end: (drop: boolean) => void;
+};
+
+/**
+ * Hold a list row, then drag it up or down. Call the result with a row's id and spread it on the row.
+ * Works with touch and mouse. While a row drags, the page doesn't scroll, and letting go doesn't also click.
+ */
+export function useHoldDrag(on: HoldDrag) {
+  const latest = useRef(on);
+  latest.current = on;
+  const press = useRef<{ x: number; y: number; dragging: boolean; timer: number } | null>(null);
+  const lastTouch = useRef(0);
+
+  useEffect(() => {
+    const move = (e: Pointer) => {
+      const p = press.current;
+      if (!p) return;
+      const { clientX, clientY } = pointOf(e);
+      if (p.dragging) {
+        e.preventDefault(); // keeps the page from scrolling under the drag
+        latest.current.move(clientY - p.y);
+      } else if (Math.hypot(clientX - p.x, clientY - p.y) > HOLD_SLOP) {
+        clearTimeout(p.timer);
+        press.current = null;
+      }
+    };
+    const release = (e: Pointer) => {
+      const p = press.current;
+      if (!p) return;
+      clearTimeout(p.timer);
+      press.current = null;
+      if (!p.dragging) return; // a plain tap or click goes through as usual
+      e.preventDefault(); // a touch that ends a drag doesn't click
+      swallowNextClick(); // a mouse clicks anyway, so catch that one click
+      latest.current.end(e.type !== 'touchcancel');
+    };
+    const noMenu = (e: Event) => {
+      if (press.current) e.preventDefault(); // Android opens a menu on a long press
+    };
+    // Added once up front, not per press: iOS ignores preventDefault from a touchmove listener added during the touch.
+    const listeners = [
+      ['touchmove', move], ['mousemove', move], ['touchend', release], ['touchcancel', release], ['mouseup', release], ['contextmenu', noMenu],
+    ] as const;
+    for (const [type, fn] of listeners) window.addEventListener(type, fn as EventListener, { passive: false });
+    return () => {
+      for (const [type, fn] of listeners) window.removeEventListener(type, fn as EventListener);
+    };
+  }, []);
+
+  const begin = (id: number, x: number, y: number) => {
+    const timer = window.setTimeout(() => {
+      if (!press.current) return;
+      press.current.dragging = true;
+      latest.current.start(id);
+    }, HOLD_MS);
+    press.current = { x, y, dragging: false, timer };
+  };
+
+  return (id: number) => ({
+    onTouchStart: (e: ReactTouchEvent) => {
+      lastTouch.current = Date.now();
+      if (e.touches.length === 1) begin(id, e.touches[0].clientX, e.touches[0].clientY);
+    },
+    onMouseDown: (e: ReactMouseEvent) => {
+      // A tap sends copies of mouse events after the touch ones; those must not start a second press.
+      if (e.button === 0 && Date.now() - lastTouch.current > 1000) begin(id, e.clientX, e.clientY);
+    },
+  });
+}
+
+function swallowNextClick() {
+  const swallow = (e: Event) => {
+    e.stopPropagation();
+    e.preventDefault();
+  };
+  window.addEventListener('click', swallow, { capture: true, once: true });
+  setTimeout(() => window.removeEventListener('click', swallow, { capture: true }), 0); // no click came, as when the mouse was let go elsewhere
 }

@@ -7,7 +7,7 @@ import { ErrorBanner, browserNow, useErrors } from './page.tsx';
 
 type Save = (change: Promise<unknown>) => Promise<void>;
 
-/** The phone's inbox: unfinished tasks and inbox tasks. Tap a bullet to tick a task. Placing them happens on the day page. */
+/** The phone's inbox: overdue tasks and inbox tasks. Tap a box to tick a task. Placing them happens on the day page. */
 export function PhoneInbox({ onAuthError }: { onAuthError: () => void }) {
   const [week, setWeek] = useState<WeekView | null>(null);
   const { message, fail, clear } = useErrors(onAuthError);
@@ -47,7 +47,7 @@ export function PhoneInbox({ onAuthError }: { onAuthError: () => void }) {
       <ErrorBanner message={message} onDismiss={clear} />
       {unfinished.length > 0 && (
         <section>
-          <h2 className="sh">Unfinished <span>{unfinished.length}</span></h2>
+          <h2 className="sh">Overdue <span>{unfinished.length}</span></h2>
           <ul className="rows">{unfinished.map((e) => <InboxLine key={e.id} entry={e} unfinished save={save} />)}</ul>
         </section>
       )}
@@ -72,7 +72,7 @@ function InboxLine({ entry, unfinished, save }: { entry: Entry; unfinished: bool
           aria-label={`Tick ${entry.title}`}
           onClick={() => save(api.updateEntry(entry.id, { status: 'done' }))}
         >
-          •
+          <span className="box" aria-hidden="true">•</span>
         </button>
         <span className="line-title">
           {entry.title}

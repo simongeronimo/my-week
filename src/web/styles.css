@@ -104,6 +104,8 @@ label { font-size: 12px; font-weight: 600; }
 .blk { height: 100%; overflow: hidden; padding: 3px 6px; }
 .blk .r1 { display: flex; align-items: baseline; gap: 5px; font-size: 12px; font-weight: 500; line-height: 15px; }
 .blk .sig { flex: none; font-family: var(--mono); }
+.blk .sig.box { position: relative; width: 12px; height: 12px; display: inline-grid; place-items: center; align-self: center; border: 1px solid currentColor; border-radius: 2px; font-size: 9px; line-height: 1; } /* a task's tick box: tap it to tick */
+.blk .sig.box::before { content: ''; position: absolute; inset: -6px -8px; } /* a bigger tap target than the box itself */
 .blk .ttl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .blk .mig, .blk .tm { font: 400 11px/15px var(--mono); opacity: 0.75; }
 .fc-timegrid-event-short .blk { padding-block: 0; }
@@ -146,35 +148,97 @@ legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
 .phone input { height: 44px; font-size: 16px; }
 .phone textarea { font-size: 16px; } /* 16px stops iOS zooming in while you type */
 .phone .add-desc { min-height: 44px; }
-.phone-links { display: flex; gap: 8px; }
-.phone-links .btn { flex: 1; justify-content: center; border-color: var(--line); background: transparent; }
 .rows { list-style: none; margin: 0; padding: 0; }
 .line { padding: 2px 0; border-bottom: 1px solid var(--line); }
 .line:last-child { border-bottom: 0; }
 .line-main { display: flex; align-items: center; gap: 4px; min-height: 44px; }
-.line .time { width: 84px; flex: none; font-size: 12px; color: var(--muted); }
-.tick { width: 44px; height: 44px; flex: none; padding: 0; border: 0; background: none; font: 500 28px/1 var(--mono); cursor: pointer; }
+/* The tick box: a 24px square in a 44px tap target. • is open, × is done. */
+.tick { width: 44px; height: 44px; flex: none; display: grid; place-items: center; padding: 0; border: 0; background: none; color: var(--ink); cursor: pointer; }
+.tick .box { width: 24px; height: 24px; display: grid; place-items: center; border: 1.5px solid currentColor; border-radius: var(--radius); background: var(--paper); font: 600 16px/1 var(--mono); }
 .tick.over { color: var(--over); }
 .ev { width: 44px; flex: none; text-align: center; font: 500 20px/1 var(--mono); color: var(--muted); }
 .line-title { flex: 1; min-width: 0; min-height: 44px; display: flex; flex-direction: column; justify-content: center; padding: 0; border: 0; background: none; text-align: left; font-size: 15px; font-weight: 500; cursor: pointer; }
 .line-title .m { font: 400 11px var(--mono); color: var(--muted); }
 .line-title .m.over { color: var(--over); }
-.line .mig, .line .r { font-size: 12px; color: var(--muted); }
+.line .r { font-size: 12px; color: var(--muted); }
 .mini { height: 44px; padding: 0 10px; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper); color: var(--ink); font-size: 12px; font-weight: 500; cursor: pointer; }
-.line .actions { margin: 0 0 8px 44px; }
-.line.big { padding: 6px 10px; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--ink); color: var(--paper); }
-.line.big .line-title { font-size: 22px; font-weight: 600; }
-.line.big .time, .line.big .ev, .line.big .mig { color: inherit; opacity: 0.75; }
-.line.big .line-main { flex-wrap: wrap; }
-.line.big .desc { color: inherit; opacity: 0.75; } /* grey would vanish on the dark Now card */
-.line.big .time { order: 1; width: 100%; padding: 0 0 4px 44px; } /* the Now card puts its time range under the title */
-.move { display: flex; flex-direction: column; gap: 6px; padding: 8px 0 10px; }
-.line.big .move { margin: 8px -10px -6px; padding: 10px; border-radius: 0 0 var(--radius) var(--radius); background: var(--paper); color: var(--ink); } /* readable form under the dark Now card */
 .token-screen input { height: 44px; font-size: 16px; } /* 16px stops iOS zooming in while you paste the token */
-.phone .arrange { justify-content: center; }
 
 .phone-top:has(> nav) { flex-wrap: wrap; align-items: center; }
 .phone-top nav { display: flex; gap: 6px; }
+
+/* Today page: the day as a compact list. Holding a row turns the list into a timeline until you let go. */
+.phone.today { padding-bottom: 104px; } /* room for the + button below the last row */
+.today-top .when { display: flex; flex-direction: column; gap: 2px; }
+.today-top h1 { font-size: 22px; letter-spacing: -0.01em; }
+.today-top nav { gap: 8px; }
+.icon-btn { position: relative; width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper); color: var(--ink); }
+.icon-btn:active, .fab:active { transform: translateY(1px); }
+.badge { position: absolute; top: -7px; right: -7px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: var(--radius); background: var(--ink); color: var(--paper); font: 600 11px/18px var(--mono); text-align: center; }
+.badge.over { background: var(--over); } /* something is overdue */
+
+/* Every row is placed by its top, so switching between list and timeline animates on its own */
+.day-list { position: relative; margin: 0; padding: 0; list-style: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; transition: height 0.25s ease; }
+.day-list > li {
+  position: absolute; left: 0; width: 100%;
+  transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease, opacity 0.25s ease, background-color 0.25s ease, border-color 0.25s ease;
+}
+.entry { display: grid; grid-template-columns: 62px 44px minmax(0, 1fr) auto; align-items: center; overflow: hidden; border: 1px solid transparent; border-radius: var(--radius); }
+.entry .time, .entry .len { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.entry .len { padding-right: 8px; }
+.entry .what { min-width: 0; height: 100%; display: flex; flex-direction: column; justify-content: center; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; }
+.entry .ttl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 500; }
+.entry .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted); }
+.entry.running { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.entry.running .time, .entry.running .now-sub { color: var(--accent); }
+.entry.running .time { font-weight: 600; }
+.entry.past, .entry.done { opacity: 0.55; }
+.entry.done .ttl { text-decoration: line-through; }
+.entry.overdue .tick, .entry.overdue .time { color: var(--over); } /* time passed without a tick */
+.free-row { display: flex; align-items: center; height: 24px; padding-left: 106px; font-size: 12px; color: var(--muted); }
+.free-row.past { opacity: 0.55; }
+.now-row { display: flex; align-items: center; height: 22px; color: var(--accent); }
+.now-row .mono { width: 62px; font-size: 11px; font-weight: 600; }
+.now-row .bar { flex: 1; height: 2px; background: currentColor; }
+
+/* The timeline while a row is held: blocks as tall as they are long, coloured like the grid */
+.timeline .entry { grid-template-columns: 0 22px minmax(0, 1fr) 0; align-items: start; background: var(--paper); border-color: var(--ink); color: var(--ink); }
+.timeline .entry .time, .timeline .entry .len { visibility: hidden; }
+.timeline .entry .sub { display: none; }
+.timeline .entry .what { height: auto; }
+.timeline .entry .ttl { font-size: 12px; line-height: 17px; }
+.timeline .tick, .timeline .ev { width: 22px; height: 17px; font-size: 12px; }
+.timeline .tick .box { width: 13px; height: 13px; border-width: 1px; font-size: 9px; }
+.timeline .k-event { background: var(--ink); color: var(--paper); }
+.timeline .k-event .ev { color: inherit; }
+.timeline .routine { background: var(--routine); border-color: var(--accent); color: var(--ink); }
+.timeline .routine .ev { color: var(--ink); }
+.timeline .k-task.routine { background: var(--paper); border-style: dashed; border-color: var(--muted); }
+.timeline .entry.lifted { z-index: 2; opacity: 1; border: 2px solid var(--accent); box-shadow: 0 8px 20px rgb(28 28 31 / 0.2); transition-duration: 0.1s; }
+.timeline .free-row { opacity: 0; }
+.hour { height: 0; border-top: 1px solid var(--line); animation: appear 0.25s ease; }
+.hour span { position: absolute; top: -8px; left: 0; padding-right: 6px; background: var(--bg); font-size: 11px; color: var(--muted); }
+.day-list > .drag-time { z-index: 3; width: auto; padding-right: 6px; background: var(--bg); font-size: 12px; font-weight: 600; line-height: 17px; color: var(--accent); }
+@keyframes appear { from { opacity: 0; } }
+
+/* The + button, and the sheet it opens */
+.fab {
+  position: fixed; right: max(16px, calc(50vw - 224px)); bottom: max(28px, env(safe-area-inset-bottom)); z-index: 5;
+  width: 56px; height: 56px; display: grid; place-items: center; padding: 0;
+  border: 1px solid var(--accent); border-radius: var(--radius); background: var(--accent); color: var(--on-accent); cursor: pointer;
+}
+.sheet {
+  width: 100%; max-width: 480px; max-height: 90dvh; margin: auto auto 0; padding: 0;
+  border: 0; border-top: 1px solid var(--ink); border-radius: var(--radius) var(--radius) 0 0;
+  background: var(--paper); color: var(--ink); animation: sheet-up 0.2s ease-out;
+}
+.sheet::backdrop { background: rgb(28 28 31 / 0.25); }
+.sheet .quick-add { border: 0; padding: 18px 16px max(24px, env(safe-area-inset-bottom)); }
+@keyframes sheet-up { from { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .day-list, .day-list > li { transition: none; }
+  .hour, .sheet { animation: none; }
+}
 
 /* Day page: header and grid fill the screen */
 .phone.day { height: 100dvh; gap: 10px; padding: 12px 16px max(12px, env(safe-area-inset-bottom)); }
@@ -227,6 +291,6 @@ body:has(> .fc-event-dragging) .drawer-backdrop { display: none; } /* FullCalend
     --fc-highlight-color: rgb(142 162 255 / 0.16);
     color-scheme: dark;
   }
-  .entry-dialog::backdrop { background: rgb(0 0 0 / 0.5); } /* ::backdrop can't read the colour variables in every browser */
+  .entry-dialog::backdrop, .sheet::backdrop { background: rgb(0 0 0 / 0.5); } /* ::backdrop can't read the colour variables in every browser */
   .drawer-backdrop { background: rgb(0 0 0 / 0.4); }
 }

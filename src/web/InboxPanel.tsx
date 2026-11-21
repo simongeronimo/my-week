@@ -37,7 +37,7 @@ export function InboxPanel({ week, save, onOpen }: Props) {
       />
       {unfinished.length > 0 && (
         <section>
-          <h2>Unfinished <span className="count">{unfinished.length}</span></h2>
+          <h2>Overdue <span className="count">{unfinished.length}</span></h2>
           <p className="hint">Time passed without a tick. Drag it to a new time, or open it to tick or delete it.</p>
           <ul className="list">
             {unfinished.map((entry) => <Item key={entry.id} entry={entry} unfinished onOpen={onOpen} />)}

@@ -106,11 +106,13 @@ export function useSave(load: () => Promise<unknown>, fail: (err: unknown) => vo
 }
 
 /**
- * What the week page and the day page share on top of the grid: throwing a block away, double-click
- * or double-tap to add a task, and the undo bar after a throw. Spread calendarProps on FullCalendar
- * and render overlays after it.
+ * What the week page and the day page share on top of the grid: tapping a task's box to tick it,
+ * tapping the rest of a block to open it, throwing a block away, double-click or double-tap to add
+ * a task, and the undo bar after a throw. Spread calendarProps on FullCalendar and render overlays after it.
  */
-export function useGridExtras(save: Save, undo: () => void, setWeek: Dispatch<SetStateAction<WeekView | null>>) {
+export function useGridExtras(
+  save: Save, undo: () => void, setWeek: Dispatch<SetStateAction<WeekView | null>>, onOpen: (entry: Entry) => void,
+) {
   const [thrown, setThrown] = useState<{ title: string; at: number } | null>(null);
   const [newAt, setNewAt] = useState<Date | null>(null);
 
@@ -127,6 +129,15 @@ export function useGridExtras(save: Save, undo: () => void, setWeek: Dispatch<Se
     eventDragStop: throwing.eventDragStop,
     eventDrop: (info: EventDropArg) => (throwing.wasThrown(info.event.id) ? info.event.remove() : moveOrResize(save, info)),
     eventResize: (info: EventResizeDoneArg) => moveOrResize(save, info),
+    eventClick: (info: EventClickArg) => {
+      const entry = info.event.extendedProps.entry as Entry;
+      if (entry.kind === 'task' && (info.jsEvent.target as Element).closest('.sig')) {
+        const status = entry.status === 'done' ? 'open' : 'done';
+        save(api.updateEntry(entry.id, { status }), undefined, () => api.updateEntry(entry.id, { status: entry.status }));
+      } else {
+        onOpen(entry);
+      }
+    },
     dateClick,
   };
   const overlays = (
@@ -179,7 +190,7 @@ function Block({ arg }: { arg: EventContentArg }) {
   return (
     <div className="blk">
       <div className="r1">
-        <span className="sig">{sig}</span>
+        <span className={entry?.kind === 'task' ? 'sig box' : 'sig'}>{sig}</span>
         <span className="ttl">{title}</span>
         {migrations > 0 && <span className="mig">&gt;{migrations}</span>}
       </div>
@@ -228,7 +239,7 @@ export function Planner({ onAuthError }: { onAuthError: () => void }) {
   }, [load]);
 
   const { save, undo } = useSave(load, fail);
-  const { calendarProps, overlays } = useGridExtras(save, undo, setWeek);
+  const { calendarProps, overlays } = useGridExtras(save, undo, setWeek, setOpenEntry);
 
   function onSelect(info: DateSelectArg) {
     info.view.calendar.unselect();
@@ -236,10 +247,6 @@ export function Planner({ onAuthError }: { onAuthError: () => void }) {
     if (!title) return;
     const created = api.createEntry({ kind: 'event', title, start: fromDate(info.start), duration: minutesBetween(info.start, info.end) });
     save(created, undefined, async () => api.deleteEntry((await created).id));
-  }
-
-  function onClick(info: EventClickArg) {
-    setOpenEntry(info.event.extendedProps.entry as Entry);
   }
 
   return (
@@ -281,7 +288,6 @@ export function Planner({ onAuthError }: { onAuthError: () => void }) {
             drop={(info) => placeDropped(save, info)}
             {...calendarProps}
             select={onSelect}
-            eventClick={onClick}
           />
         </main>
       </div>
