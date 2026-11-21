@@ -37,7 +37,7 @@ export function EntryDialog({ entry, save, onClose }: Props) {
         <h2 id="entry-dialog-title">{isTask ? 'Task' : 'Event'}</h2>
         <label htmlFor="entry-title">Title</label>
         <input id="entry-title" value={title} onChange={(e) => setTitle(e.target.value)} required />
-        <label htmlFor="entry-notes">Notes</label>
+        <label htmlFor="entry-notes">Description</label>
         <textarea id="entry-notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
         <div className="actions">
           {isTask && (
@@ -82,9 +82,9 @@ export function NewTaskDialog({ start, save, onClose }: { start: Date; save: Sav
         label={`New task, ${formatDay(at)} ${formatTime(at)}`}
         submit="Add task"
         onCancel={onClose}
-        onAdd={(title, duration) => {
+        onAdd={(title, duration, notes) => {
           onClose();
-          const created = api.createEntry({ kind: 'task', title, start: at, duration });
+          const created = api.createEntry({ kind: 'task', title, start: at, duration, notes });
           save(created, undefined, async () => api.deleteEntry((await created).id));
         }}
       />

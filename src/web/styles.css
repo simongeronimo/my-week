@@ -65,6 +65,8 @@ label { font-size: 12px; font-weight: 600; }
 .count { font: 400 12px var(--mono); color: var(--muted); }
 .hint { margin: 4px 0 8px; font-size: 12px; color: var(--muted); }
 .quick-add { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper); }
+.add-desc { align-self: flex-start; padding: 0; border: 0; background: none; color: var(--accent); font-size: 12px; font-weight: 500; cursor: pointer; }
+.desc { font-size: 12px; font-weight: 400; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } /* a description's first line under a title */
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { height: 30px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--radius); background: transparent; font: 500 12px var(--mono); cursor: pointer; }
 .chip.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
@@ -106,6 +108,11 @@ label { font-size: 12px; font-weight: 600; }
 .blk .mig, .blk .tm { font: 400 11px/15px var(--mono); opacity: 0.75; }
 .fc-timegrid-event-short .blk { padding-block: 0; }
 .fc-timegrid-event-short .blk .tm { display: none; }
+/* A block shows its description only when it has room: one line from about 1h 30m on the week grid, three lines from 2h */
+.blk { container-type: size; }
+.blk .desc { display: none; font-size: 11px; line-height: 15px; color: inherit; opacity: 0.75; white-space: normal; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
+@container (min-height: 45px) { .blk .desc { display: -webkit-box; } }
+@container (min-height: 75px) { .blk .desc { -webkit-line-clamp: 3; } }
 
 /* Entry dialog and token screen */
 .entry-dialog { width: min(420px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper); color: var(--ink); }
@@ -137,6 +144,8 @@ legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
 .sh span { font: 400 12px var(--mono); color: var(--muted); }
 .phone .btn, .phone .chip { height: 44px; min-width: 44px; }
 .phone input { height: 44px; font-size: 16px; }
+.phone textarea { font-size: 16px; } /* 16px stops iOS zooming in while you type */
+.phone .add-desc { min-height: 44px; }
 .phone-links { display: flex; gap: 8px; }
 .phone-links .btn { flex: 1; justify-content: center; border-color: var(--line); background: transparent; }
 .rows { list-style: none; margin: 0; padding: 0; }
@@ -157,6 +166,7 @@ legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
 .line.big .line-title { font-size: 22px; font-weight: 600; }
 .line.big .time, .line.big .ev, .line.big .mig { color: inherit; opacity: 0.75; }
 .line.big .line-main { flex-wrap: wrap; }
+.line.big .desc { color: inherit; opacity: 0.75; } /* grey would vanish on the dark Now card */
 .line.big .time { order: 1; width: 100%; padding: 0 0 4px 44px; } /* the Now card puts its time range under the title */
 .move { display: flex; flex-direction: column; gap: 6px; padding: 8px 0 10px; }
 .line.big .move { margin: 8px -10px -6px; padding: 10px; border-radius: 0 0 var(--radius) var(--radius); background: var(--paper); color: var(--ink); } /* readable form under the dark Now card */

@@ -24,3 +24,8 @@ export function blockParts(entry: Entry | undefined, title: string): { sig: stri
   const sig = entry.kind === 'event' ? '○' : entry.status === 'done' ? '×' : '•';
   return { sig, title: entry.title, migrations: entry.migrations };
 }
+
+/** The first line of a description that has any text, for the one-line preview in lists. */
+export function firstLine(notes: string | null): string {
+  return notes?.split('\n').map((line) => line.trim()).find(Boolean) ?? '';
+}

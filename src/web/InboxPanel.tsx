@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Draggable } from '@fullcalendar/interaction';
 import type { Entry, WeekView } from '../shared/types.ts';
 import { formatDuration } from '../shared/time.ts';
-import { itemMeta } from './block.ts';
+import { firstLine, itemMeta } from './block.ts';
 import { api } from './api.ts';
 import type { Save } from './Planner.tsx';
 
@@ -30,8 +30,8 @@ export function InboxPanel({ week, save, onOpen }: Props) {
   return (
     <aside className="inbox" ref={ref} aria-label="Inbox">
       <QuickAdd
-        onAdd={(title, duration) => {
-          const created = api.createEntry({ kind: 'task', title, duration });
+        onAdd={(title, duration, notes) => {
+          const created = api.createEntry({ kind: 'task', title, duration, notes });
           save(created, undefined, async () => api.deleteEntry((await created).id));
         }}
       />
@@ -63,18 +63,25 @@ function Item({ entry, unfinished = false, onOpen }: { entry: Entry; unfinished?
       <button type="button" className="item-body" onClick={() => onOpen(entry)}>
         <span className="t">{entry.title}</span>
         {meta && <span className="m">{meta}</span>}
+        {entry.notes && <span className="desc">{firstLine(entry.notes)}</span>}
       </button>
       <span className="r">{formatDuration(entry.duration)}</span>
     </li>
   );
 }
 
-type QuickAddProps = { onAdd: (title: string, duration: number) => void; label?: string; submit?: string; onCancel?: () => void };
+type QuickAddProps = {
+  onAdd: (title: string, duration: number, notes: string | null) => void;
+  label?: string;
+  submit?: string;
+  onCancel?: () => void;
+};
 
 export function QuickAdd({ onAdd, label = 'New task', submit = 'Add to inbox', onCancel }: QuickAddProps) {
   const id = useId(); // the week page can show two of these at once: the inbox's and the new task dialog's
   const [title, setTitle] = useState('');
   const [duration, setDuration] = useState(30);
+  const [notes, setNotes] = useState<string | null>(null); // null while the description box is closed
   return (
     <form
       className="quick-add"
@@ -82,12 +89,21 @@ export function QuickAdd({ onAdd, label = 'New task', submit = 'Add to inbox', o
         e.preventDefault();
         const trimmed = title.trim();
         if (!trimmed) return;
-        onAdd(trimmed, duration);
+        onAdd(trimmed, duration, notes?.trim() || null);
         setTitle('');
+        setNotes(null);
       }}
     >
       <label htmlFor={id}>{label}</label>
       <input id={id} value={title} onChange={(e) => setTitle(e.target.value)} autoComplete="off" required />
+      {notes === null ? (
+        <button type="button" className="add-desc" onClick={() => setNotes('')}>Add description</button>
+      ) : (
+        <>
+          <label htmlFor={`${id}-notes`}>Description</label>
+          <textarea id={`${id}-notes`} rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} autoFocus />
+        </>
+      )}
       <div className="chips" role="group" aria-label="Duration">
         {DURATIONS.map((d) => (
           <button key={d} type="button" className={d === duration ? 'chip on' : 'chip'} aria-pressed={d === duration} onClick={() => setDuration(d)}>

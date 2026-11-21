@@ -47,7 +47,7 @@ It has three users:
 1. An inbox panel with a quick-add form. You type a title and pick a duration chip: 15m, 30m, 45m, 1h, 1h 30m, or 2h.
 2. An "Unfinished" section above the inbox that lists open tasks whose time has passed.
 3. A Monday to Sunday week grid in 15-minute steps. You drag from the inbox or Unfinished onto the grid, move blocks, and resize them.
-4. Clicking a block offers Tick, Back to inbox, and Delete, plus editing the title and notes. (Strike was taken out of the app on 20 November. It hid a task everywhere with no way back. The API still accepts `cancelled`.)
+4. Clicking a block offers Tick, Back to inbox, and Delete, plus editing the title and description. (Strike was taken out of the app on 20 November. It hid a task everywhere with no way back. The API still accepts `cancelled`.)
 5. You create an event by dragging across an empty slot and typing a title. A double click on an empty slot opens a dialog that adds a task there.
 6. Routine copies appear on every week. You create the routines once with curl (see "Routines in milestone 1").
 7. Buttons for previous week, next week, and today. On Sundays the planner opens on next week.
@@ -62,11 +62,12 @@ It has three users:
 4. The calendar feed at `/calendar.ics`.
 5. The agent token and the agent guide at `/api/guide`.
 
-### Added on 20 November
+### Added on 20 and 21 November
 
 1. Letting go of a block while still moving it fast throws it away. It flies off, an undo bar shows for 5 seconds, and the entry is kept as cancelled so undo can bring it back.
 2. Ctrl+Z or Cmd+Z undoes grid changes one at a time (moves, resizes, throws, adds, ticks, and edits from the dialog) until the page reloads. There is no redo.
 3. Dark mode follows the device's light or dark setting.
+4. Tasks have a description, stored in the `notes` column. Every add-task form has an Add description button, the block dialog edits it, lists show its first line, and grid blocks show it when they are tall enough. The calendar feed leaves it out.
 
 ### Later list (left out on purpose)
 

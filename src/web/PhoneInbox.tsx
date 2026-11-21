@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Entry, WeekView } from '../shared/types.ts';
 import { formatDuration, mondayOf } from '../shared/time.ts';
-import { itemMeta } from './block.ts';
+import { firstLine, itemMeta } from './block.ts';
 import { api } from './api.ts';
 import { ErrorBanner, browserNow, useErrors } from './page.tsx';
 
@@ -77,6 +77,7 @@ function InboxLine({ entry, unfinished, save }: { entry: Entry; unfinished: bool
         <span className="line-title">
           {entry.title}
           {meta && <span className={unfinished ? 'm over' : 'm'}>{meta}</span>}
+          {entry.notes && <span className="desc">{firstLine(entry.notes)}</span>}
         </span>
         <span className="r mono">{formatDuration(entry.duration)}</span>
         <button

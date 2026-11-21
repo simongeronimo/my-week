@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { blockParts, itemMeta, withinOneDay } from './block.ts';
+import { blockParts, firstLine, itemMeta, withinOneDay } from './block.ts';
 import type { Entry } from '../shared/types.ts';
 
 test('the drag preview of an inbox item renders without an entry', () => {
@@ -38,4 +38,14 @@ test('a saved entry shows its own signifier, title and migration count', () => {
     status: 'done', migrations: 2, routine_id: null, created_by: 'me',
   };
   assert.deepEqual(blockParts(entry, 'ignored'), { sig: '×', title: 'Call the bank', migrations: 2 });
+});
+
+test('a description shows its first line that has text', () => {
+  assert.equal(firstLine('Call the shop\nask about pads'), 'Call the shop');
+  assert.equal(firstLine('\n   \n  Bring the receipt  '), 'Bring the receipt');
+});
+
+test('no description shows nothing', () => {
+  assert.equal(firstLine(null), '');
+  assert.equal(firstLine('  \n '), '');
 });

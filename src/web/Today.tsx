@@ -5,6 +5,7 @@ import { api } from './api.ts';
 import { lineTime, timeRange, todayView, until } from './today.ts';
 import { MoveForm } from './MoveForm.tsx';
 import { QuickAdd } from './InboxPanel.tsx';
+import { firstLine } from './block.ts';
 import { ErrorBanner, browserNow, useErrors } from './page.tsx';
 
 type Save = (change: Promise<unknown>) => Promise<void>;
@@ -95,7 +96,7 @@ export function Today({ onAuthError }: { onAuthError: () => void }) {
         <a className="btn" href="/inbox">Inbox ({weeks?.[0]?.inbox.length ?? 0})</a>
         <a className="btn" href="/inbox">Unfinished ({weeks?.[0]?.unfinished.length ?? 0})</a>
       </div>
-      <QuickAdd onAdd={(title, duration) => save(api.createEntry({ kind: 'task', title, duration }))} />
+      <QuickAdd onAdd={(title, duration, notes) => save(api.createEntry({ kind: 'task', title, duration, notes }))} />
     </main>
   );
 }
@@ -114,7 +115,10 @@ function Line({ entry, big, now, moving, onMove, save }: LineProps) {
         ) : (
           <span className="ev" aria-hidden="true">○</span>
         )}
-        <button type="button" className="line-title" aria-expanded={moving} onClick={() => onMove(!moving)}>{entry.title}</button>
+        <button type="button" className="line-title" aria-expanded={moving} onClick={() => onMove(!moving)}>
+          {entry.title}
+          {entry.notes && <span className="desc">{firstLine(entry.notes)}</span>}
+        </button>
         {entry.migrations > 0 && <span className="mig mono">&gt;{entry.migrations}</span>}
         {isTask && (
           <button type="button" className="mini" onClick={() => save(api.updateEntry(entry.id, { start: null }))}>To inbox</button>

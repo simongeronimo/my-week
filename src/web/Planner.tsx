@@ -172,7 +172,8 @@ export const gridOptions: CalendarOptions = {
 };
 
 function Block({ arg }: { arg: EventContentArg }) {
-  const { sig, title, migrations } = blockParts(arg.event.extendedProps.entry as Entry | undefined, arg.event.title);
+  const entry = arg.event.extendedProps.entry as Entry | undefined;
+  const { sig, title, migrations } = blockParts(entry, arg.event.title);
   const start = arg.event.start!;
   const end = arg.event.end ?? start;
   return (
@@ -185,6 +186,7 @@ function Block({ arg }: { arg: EventContentArg }) {
       <div className="tm">
         {formatTime(fromDate(start))} · {formatDuration(minutesBetween(start, end))}
       </div>
+      {entry?.notes && <div className="desc">{entry.notes}</div>}
     </div>
   );
 }
