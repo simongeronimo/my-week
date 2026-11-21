@@ -78,6 +78,7 @@ function pushAlong(save: Save, setWeek: Dispatch<SetStateAction<WeekView | null>
 /** Saves an inbox task dropped on the grid, starting where it landed. */
 function placeDropped(save: Save, info: DropArg) {
   const { id, start } = info.draggedEl.dataset; // start is empty for an inbox task, a past time for an overdue one
+  if (!id) return; // a thrown grid block can land here too, because the throw redraws the grid before FullCalendar sees the release
   save(api.updateEntry(Number(id), { start: fromDate(info.date) }), undefined, () => api.updateEntry(Number(id), { start: start || null }));
 }
 
