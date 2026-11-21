@@ -25,10 +25,18 @@ export function migrate(db: DB, dir: string): void {
     .sort()
     .filter((file) => Number(file.slice(0, 3)) > current);
   if (pending.length === 0) return;
-  transaction(db, () => {
-    for (const file of pending) db.exec(readFileSync(join(dir, file), 'utf8'));
-    db.exec(`PRAGMA user_version = ${Number(pending.at(-1)!.slice(0, 3))}`);
-  });
+  // Rebuilding a table means dropping the old one, which with foreign keys on would fire ON DELETE
+  // on every row that points at it. The pragma does nothing inside a transaction, so it goes around it.
+  db.exec('PRAGMA foreign_keys = OFF');
+  try {
+    transaction(db, () => {
+      for (const file of pending) db.exec(readFileSync(join(dir, file), 'utf8'));
+      if (all(db, 'PRAGMA foreign_key_check').length > 0) throw new Error('A schema upgrade broke a foreign key');
+      db.exec(`PRAGMA user_version = ${Number(pending.at(-1)!.slice(0, 3))}`);
+    });
+  } finally {
+    db.exec('PRAGMA foreign_keys = ON');
+  }
 }
 
 /** Runs fn inside BEGIN/COMMIT, and rolls everything back if it throws. */
