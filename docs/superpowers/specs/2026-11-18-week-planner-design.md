@@ -72,6 +72,28 @@ It has three users:
 6. The Unfinished list is called Overdue on screen.
 7. The phone today page was redesigned. See its section below.
 
+### Added on 21 November, second round
+
+All six ship together as 0.7.0.
+
+1. **Short blocks no longer overlap.** FullCalendar never draws a block shorter than `eventMinHeight` (15px), and it uses that drawn height to decide which blocks clash. On the desktop a 15-minute block was 12px, so it clashed with the block right after it, and FullCalendar pushed that one onto the right half. The desktop's 30-minute rows grow from 24px to 32px, so a 15-minute block is 16px. The dot grid follows the new row height.
+2. **Times are easier to read on the grid.** A faint line marks every full hour across all days. Blocks too short for their time line show the start time before the title, like "2:15 Read". While you drag or resize a block, a small dark tag on it shows the day and the exact start and end, like "Thu 2:15 – 3:00 pm", and it updates as you move.
+3. **Any length.** Next to the length chips, a small box takes a typed length: "75", "45m", "1h", "1h 15m" or "1:15". Lengths run from 5 minutes to 24 hours, like the database allows. Every add-task form gets it, and the entry dialog gets the same chips and box, so you can change the length of an inbox task, or of any entry on the phone, where blocks can't be resized.
+4. **Habits.** A habit is a routine with no time: something to do on certain days at whatever time suits you. See "Habits" below.
+5. **Descriptions are Markdown.** Opening an entry shows its description formatted, with bold, italics, lists, links and headings, and an Edit button that turns it back into the text box. Checklist lines like `- [ ] milk` become boxes you can tick right there, and ticking saves at once and can be undone. Raw HTML in a description is never rendered, because the agent can write descriptions too. Lists, phone rows and grid blocks keep showing plain text, with the Markdown symbols taken out.
+6. **Pushing the blocks behind.** On the desktop week grid and the phone day page, pressing a block and holding it still for 1 second before moving switches the drag to push mode, and the block and the blocks it will push get marked. On the phone this is the same press that starts a drag after 0.4 seconds, held a little longer. When you let go, the blocks that followed the moved block back to back on its old day move by the same amount. Back to back means each one starts exactly when the one before it ends, and the first gap ends the chain. One Ctrl+Z, or the undo bar, puts them all back. Resizing never pushes.
+
+#### Habits
+
+- **Setting one up.** The routines page form gets an "Any time" choice next to the time field. A routine with no time is a habit, and it is always a task. Habits also get a "Carry over" switch. The list shows them as "Every day, any time, 1h", with "carries over" when it is on.
+- **Copies.** For each day a habit applies, the server creates a real task with no start time, as rule 1 does for routines: on a week's first read, and for already filled weeks when the habit is created, from today onward. The copy remembers its day in a new `day` column. Placing a copy, ticking it, throwing it away and undoing all work as for any task.
+- **Which ones show.** A copy shows while it is open and unplaced, on its own day. With carry over on, it also shows on later days of the same week, so a missed hour of gaming waits until Sunday night. Without it, the copy is gone after its day. Copies of a deleted habit stop showing.
+- **Inbox.** The desktop panel, the phone day page's panel and the phone inbox get a Habits section between Overdue and Inbox. It lists today's copies and carried copies, oldest first. You drag them onto the grid like inbox tasks. The phone today page's inbox count includes them.
+- **Double-click.** The new task dialog that a double-click or double tap opens lists the habits for that day as one-click choices above the form, plus the carried ones when the day is today. Choosing one places that copy at the clicked time.
+- **Placed habits** look like routine tasks: a dashed outline. If the time passes without a tick, they go to Overdue like any task.
+- **Data.** `routines.at` becomes optional, with a check that only tasks may leave it empty, and `routines` gets `carry INTEGER NOT NULL DEFAULT 0`. `entries` gets `day TEXT`, set only on habit copies. SQLite can't change `at` in place, so migration `002` rebuilds `routines`. Foreign keys must be off during the rebuild, because dropping the old table with them on would clear `routine_id` on every routine copy.
+- **Rules.** Rule 1 creates habit copies with `start` empty and `day` set. Rule 3 also deletes a habit's unplaced copies. The inbox query skips copies with a `day`. `GET /api/week` returns a new `habits` list: open, unplaced habit copies dated from this week's Monday up to the end of the shown week, or up to today if the shown week is in the past. It leaves out copies dated before today unless their habit carries over. The inbox section shows the ones dated today or earlier, and the double-click dialog picks by day. `POST /api/routines` accepts `at: null` and `carry`. The agent guide explains habits.
+
 ### Later list (left out on purpose)
 
 - All-day events, yearly repeats, and events that span several days
