@@ -12,6 +12,7 @@ export type Entry = {
   migrations: number;
   routine_id: number | null;
   created_by: 'me' | 'agent';
+  day: string | null; // '2026-11-25' on a habit copy: the day it belongs to
 };
 
 export type Routine = {
@@ -19,8 +20,9 @@ export type Routine = {
   kind: Kind;
   title: string;
   days: string; // 'MTWTF..' = Monday to Friday
-  at: string; // '08:00'
+  at: string | null; // '08:00', or null for a habit, which you do at any time
   duration: number;
+  carry: 0 | 1; // 1: a habit copy you miss shows on the later days of its week
 };
 
 export type WeekView = {
@@ -28,6 +30,7 @@ export type WeekView = {
   entries: Entry[];
   inbox: Entry[];
   unfinished: Entry[];
+  habits: Entry[]; // open, unplaced habit copies; see getWeek on the server
 };
 
 export type NewEntry = {

@@ -13,7 +13,7 @@ test('a selection on the grid must stay within one day', () => {
 test('an inbox item notes where it came from', () => {
   const base: Entry = {
     id: 1, kind: 'task', title: 'Call the bank', notes: null, start: '2026-11-23T19:30', duration: 30,
-    status: 'open', migrations: 0, routine_id: null, created_by: 'me',
+    status: 'open', migrations: 0, routine_id: null, created_by: 'me', day: null,
   };
   assert.equal(itemMeta(base, true), 'was Mon 7:30 pm');
   assert.equal(itemMeta({ ...base, start: null, migrations: 2 }, false), '>2 carried forward');

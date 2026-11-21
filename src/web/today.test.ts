@@ -6,7 +6,7 @@ import type { Entry } from '../shared/types.ts';
 
 const at = (id: number, start: string, duration: number, over: Partial<Entry> = {}): Entry => ({
   id, kind: 'event', title: `Entry ${id}`, notes: null, start, duration,
-  status: 'open', migrations: 0, routine_id: null, created_by: 'me', ...over,
+  status: 'open', migrations: 0, routine_id: null, created_by: 'me', day: null, ...over,
 });
 
 const wednesday = [

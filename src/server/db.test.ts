@@ -31,12 +31,12 @@ test('rebuilding routines for habits keeps every routine copy linked to its rout
   migrate(db, MIGRATIONS);
 
   assert.equal(version(db), LATEST);
-  assert.deepEqual(all(db, 'SELECT title, routine_id FROM entries ORDER BY id').map((r) => ({ ...r })), [
+  assert.deepEqual(all<object>(db, 'SELECT title, routine_id FROM entries ORDER BY id').map((r) => ({ ...r })), [
     { title: 'Work', routine_id: 1 },
     { title: 'Read', routine_id: 2 },
     { title: 'Not a copy', routine_id: null },
   ]);
-  assert.deepEqual(all(db, 'SELECT id, at, carry FROM routines ORDER BY id').map((r) => ({ ...r })), [
+  assert.deepEqual(all<object>(db, 'SELECT id, at, carry FROM routines ORDER BY id').map((r) => ({ ...r })), [
     { id: 1, at: '08:00', carry: 0 },
     { id: 2, at: '22:30', carry: 0 },
   ]);

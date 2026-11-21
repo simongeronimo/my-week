@@ -10,7 +10,7 @@ import type { Entry } from '../shared/types.ts';
 const NOW = new Date('2026-11-18T12:00:00Z');
 const entry = (over: Partial<Entry>): Entry => ({
   id: 1, kind: 'task', title: 'X', notes: null, start: '2026-11-25T19:30', duration: 60,
-  status: 'open', migrations: 0, routine_id: null, created_by: 'me', ...over,
+  status: 'open', migrations: 0, routine_id: null, created_by: 'me', day: null, ...over,
 });
 
 test('each entry becomes an event with floating times and its signifier', () => {

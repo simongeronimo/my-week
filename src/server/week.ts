@@ -50,20 +50,27 @@ function fillWeek(db: DB, monday: string, now: string): void {
   });
 }
 
-/** Adds a routine's copies to one week, skipping days that start before `from`. */
+/**
+ * Adds a routine's copies to one week, skipping days that start before `from`.
+ * A habit has no time, so its copy has no start, remembers its day, and counts from the start of today.
+ */
 function insertCopies(db: DB, routine: Routine, monday: string, from: string): void {
   for (let i = 0; i < 7; i++) {
     if (routine.days[i] === '.') continue;
-    const start = `${addDays(monday, i)}T${routine.at}`;
-    if (start < from) continue;
-    run(db, 'INSERT INTO entries (kind, title, start, duration, routine_id) VALUES (?, ?, ?, ?, ?)', [
-      routine.kind, routine.title, start, routine.duration, routine.id,
+    const day = addDays(monday, i);
+    const start = routine.at === null ? null : `${day}T${routine.at}`;
+    if (start === null ? day < from.slice(0, 10) : start < from) continue;
+    run(db, 'INSERT INTO entries (kind, title, start, duration, routine_id, day) VALUES (?, ?, ?, ?, ?, ?)', [
+      routine.kind, routine.title, start, routine.duration, routine.id, start === null ? day : null,
     ]);
   }
 }
 
 export function getWeek(db: DB, monday: string, now: string): WeekView {
+  const today = now.slice(0, 10);
+  const sunday = addDays(monday, 6);
   fillWeek(db, monday, now);
+  fillWeek(db, mondayOf(now), now); // the habits list always needs this week's copies, whichever week is shown
   return {
     monday,
     entries: all<Entry>(
@@ -71,7 +78,17 @@ export function getWeek(db: DB, monday: string, now: string): WeekView {
       "SELECT * FROM entries WHERE start >= ? AND start < ? AND status <> 'cancelled' ORDER BY start",
       [monday, addDays(monday, 7)],
     ),
-    inbox: all<Entry>(db, "SELECT * FROM entries WHERE kind = 'task' AND status = 'open' AND start IS NULL ORDER BY id"),
+    inbox: all<Entry>(db, "SELECT * FROM entries WHERE kind = 'task' AND status = 'open' AND start IS NULL AND day IS NULL ORDER BY id"),
+    // Open, unplaced habit copies from this Monday to the end of the shown week, or to today for a past week.
+    // A copy from before today stays only while its habit carries over, and never past its own week.
+    habits: all<Entry>(
+      db,
+      `SELECT entries.* FROM entries JOIN routines ON routines.id = entries.routine_id
+       WHERE entries.status = 'open' AND entries.start IS NULL AND entries.day BETWEEN ? AND ?
+         AND (entries.day >= ? OR routines.carry = 1)
+       ORDER BY entries.day, entries.id`,
+      [mondayOf(now), sunday > today ? sunday : today, today],
+    ),
     unfinished: all<Entry>(
       db,
       `SELECT * FROM entries
@@ -85,10 +102,10 @@ export function getWeek(db: DB, monday: string, now: string): WeekView {
 
 // Routines
 
-const ROUTINE_FIELDS = ['kind', 'title', 'days', 'at', 'duration'];
+const ROUTINE_FIELDS = ['kind', 'title', 'days', 'at', 'duration', 'carry'];
 
 export function listRoutines(db: DB): Routine[] {
-  return all<Routine>(db, 'SELECT * FROM routines ORDER BY at, id');
+  return all<Routine>(db, 'SELECT * FROM routines ORDER BY at NULLS LAST, id'); // habits after the timed routines
 }
 
 /** Rule 2: a new routine also lands in weeks that are already filled, from now on. */
@@ -102,10 +119,10 @@ export function createRoutine(db: DB, body: unknown, now: string): Routine {
   });
 }
 
-/** Rule 3: future open copies go; past copies stay, and ON DELETE SET NULL clears their routine_id. */
+/** Rule 3: future open copies go, and so do a habit's unplaced ones. Past copies stay, and ON DELETE SET NULL clears their routine_id. */
 export function deleteRoutine(db: DB, id: number, now: string): void {
   transaction(db, () => {
-    run(db, "DELETE FROM entries WHERE routine_id = ? AND status = 'open' AND start > ?", [id, now]);
+    run(db, "DELETE FROM entries WHERE routine_id = ? AND status = 'open' AND (start > ? OR start IS NULL)", [id, now]);
     if (run(db, 'DELETE FROM routines WHERE id = ?', [id]) === 0) throw new HttpError(404, `No routine with id ${id}`);
   });
 }

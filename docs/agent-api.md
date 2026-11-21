@@ -12,8 +12,8 @@ my-week is the user's week planner. You can read their week and add tasks to the
 
 | Request | What it does |
 |---|---|
-| `GET /api/week?monday=YYYY-MM-DD` | The week that starts on that Monday, as `{ monday, entries, inbox, unfinished }`. Without `monday` you get the current week. |
-| `GET /api/routines` | The user's recurring blocks, such as work and dinner. |
+| `GET /api/week?monday=YYYY-MM-DD` | The week that starts on that Monday, as `{ monday, entries, inbox, unfinished, habits }`. Without `monday` you get the current week. |
+| `GET /api/routines` | The user's recurring blocks, such as work and dinner, and their habits. |
 | `GET /api/guide` | This guide. |
 | `POST /api/entries` | Adds a task to the inbox. Send `{"kind": "task", "title": "...", "duration": 30}`, and optionally `"notes"`. |
 
@@ -33,8 +33,15 @@ Everything else gets a `403`: moving, ticking, editing or deleting entries, crea
 | `migrations` | How often the user carried this task forward after its time passed. |
 | `routine_id` | Set when the entry is a copy of a routine. |
 | `created_by` | `me` or `agent`. |
+| `day` | The day a habit copy belongs to, like `2026-11-25`. Null for everything else. |
 
-`inbox` holds open tasks with no start. `unfinished` holds open tasks whose time has passed.
+`inbox` holds open tasks with no start, except habit copies. `unfinished` holds open tasks whose time has passed.
+
+## Habits
+
+A habit is a routine with no time: `at` is null, and `kind` is always `task`. It's something the user does on certain days at whatever time suits them, like an hour of gaming. For each day a habit applies, the server creates a task with no start and with `day` set. The user drags it onto the week when they plan the day.
+
+`habits` in the week holds the open habit copies that have no start yet, oldest first. It runs from the current week's Monday to the end of the requested week, and copies from before today appear only when their routine has `carry` set to 1. Copies dated today or earlier are the ones still to do today. A habit copy that the user placed is an ordinary entry in `entries`.
 
 ## Examples
 
@@ -51,7 +58,7 @@ curl -s -X POST http://my-week:3000/api/entries \
 You can't place tasks yourself. To help the user plan:
 
 1. Read the week and find the free time between entries.
-2. Match inbox tasks to free slots by duration.
+2. Match inbox tasks and habit copies to free slots by duration. A habit copy belongs on its `day`.
 3. Tell the user in chat, for example "Fix bike brakes (45m) fits Tuesday at 7:00 pm". They drag it onto the week on the desktop.
 
 Keep durations realistic, and add only the tasks the user asked for.
