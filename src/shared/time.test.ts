@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addMinutes, formatDate, formatDuration, formatTime, isMonday, isoWeek, localNow, mondayOf, weekLabel } from './time.ts';
+import { addMinutes, formatDate, formatDuration, formatSpan, formatTime, isMonday, isoWeek, localNow, mondayOf, weekLabel } from './time.ts';
 
 test('mondayOf finds the Monday, also across months and years', () => {
   assert.equal(mondayOf('2026-11-25T14:10'), '2026-11-23');
@@ -32,4 +32,11 @@ test('time math and labels', () => {
   assert.equal(formatTime('00:15'), '12:15 am');
   assert.equal(formatDuration(90), '1h 30m');
   assert.equal(formatDate('2026-11-25T14:10'), 'Wed 25 Nov');
+});
+
+test('formatSpan names the day, and am or pm only once when both times share it', () => {
+  assert.equal(formatTime('2026-11-26T14:15', false), '2:15');
+  assert.equal(formatSpan('2026-11-26T14:15', '2026-11-26T15:00'), 'Thu 2:15 – 3:00 pm');
+  assert.equal(formatSpan('2026-11-26T11:30', '2026-11-26T12:15'), 'Thu 11:30 am – 12:15 pm');
+  assert.equal(formatSpan('2026-11-26T23:30', '2026-11-27T00:00'), 'Thu 11:30 pm – 12:00 am');
 });

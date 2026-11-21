@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -8,7 +8,7 @@ import type { CalendarOptions, DateSelectArg, EventClickArg, EventContentArg, Ev
 import { signifier } from '../shared/types.ts';
 import type { Entry, WeekView } from '../shared/types.ts';
 import {
-  USE_12_HOUR, addDays, addMinutes, formatDay, formatDuration, formatTime, fromDate, isoWeek, minutesBetween, mondayOf, weekLabel,
+  USE_12_HOUR, addDays, addMinutes, formatDay, formatDuration, formatSpan, formatTime, fromDate, isoWeek, minutesBetween, mondayOf, weekLabel,
 } from '../shared/time.ts';
 import { api } from './api.ts';
 import { InboxPanel } from './InboxPanel.tsx';
@@ -140,6 +140,7 @@ export const gridOptions: CalendarOptions = {
   nowIndicator: true,
   editable: true,
   slotLabelFormat: { hour: 'numeric', minute: '2-digit', omitZeroMinute: true, hour12: USE_12_HOUR },
+  eventShortHeight: 40, // px a block needs for its title line and its time line; shorter blocks get fc-timegrid-event-short
   eventContent: (arg) => <Block arg={arg} />,
 };
 
@@ -148,18 +149,36 @@ function Block({ arg }: { arg: EventContentArg }) {
   const start = arg.event.start!;
   const end = arg.event.end ?? start;
   return (
-    <div className="blk">
-      <div className="r1">
-        <span className={entry?.kind === 'task' ? 'sig box' : 'sig'}>{entry ? signifier(entry) : '•'}</span>
-        <span className="ttl">{arg.event.title}</span>
-        {entry && entry.migrations > 0 && <span className="mig">&gt;{entry.migrations}</span>}
+    <>
+      <div className="blk">
+        <div className="r1">
+          <span className={entry?.kind === 'task' ? 'sig box' : 'sig'}>{entry ? signifier(entry) : '•'}</span>
+          <span className="st">{formatTime(fromDate(start), false)}</span>
+          <span className="ttl">{arg.event.title}</span>
+          {entry && entry.migrations > 0 && <span className="mig">&gt;{entry.migrations}</span>}
+        </div>
+        <div className="tm">
+          {formatTime(fromDate(start))} · {formatDuration(minutesBetween(start, end))}
+        </div>
+        {entry?.notes && <div className="desc">{plainText(entry.notes)}</div>}
       </div>
-      <div className="tm">
-        {formatTime(fromDate(start))} · {formatDuration(minutesBetween(start, end))}
-      </div>
-      {entry?.notes && <div className="desc">{plainText(entry.notes)}</div>}
-    </div>
+      {/* FullCalendar draws the moving copy afresh at every step, so the tag follows it */}
+      {arg.isMirror && <DragTag text={formatSpan(fromDate(start), fromDate(end))} />}
+    </>
   );
+}
+
+/** Sits above the moving block, where a finger doesn't cover it, or below when the grid's top edge would cut it off. */
+function DragTag({ text }: { text: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [below, setBelow] = useState(false);
+  useLayoutEffect(() => {
+    const tag = ref.current!;
+    const top = tag.closest('.fc-event')?.getBoundingClientRect().top ?? 0;
+    const edge = tag.closest('.fc-scroller')?.getBoundingClientRect().top ?? 0;
+    setBelow(top - edge < tag.offsetHeight + 3);
+  });
+  return <span ref={ref} className={below ? 'drag-tag below' : 'drag-tag'}>{text}</span>;
 }
 
 export function Planner({ onAuthError }: { onAuthError: () => void }) {

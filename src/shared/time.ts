@@ -57,12 +57,19 @@ export function minutesBetween(from: Date, to: Date): number {
   return Math.round((to.getTime() - from.getTime()) / 60_000);
 }
 
-/** '19:30' or '2026-11-25T19:30' becomes '7:30 pm', or '19:30' when USE_12_HOUR is false. */
-export function formatTime(time: string): string {
+/** '19:30' or '2026-11-25T19:30' becomes '7:30 pm', or '7:30' without the suffix, or '19:30' when USE_12_HOUR is false. */
+export function formatTime(time: string, suffix = true): string {
   const hhmm = time.slice(-5);
   if (!USE_12_HOUR) return hhmm;
   const [h, m] = hhmm.split(':').map(Number);
-  return `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'am' : 'pm'}`;
+  const clock = `${h % 12 || 12}:${pad(m)}`;
+  return suffix ? `${clock} ${h < 12 ? 'am' : 'pm'}` : clock;
+}
+
+/** '2026-11-26T14:15' and '2026-11-26T15:00' become 'Thu 2:15 – 3:00 pm'. */
+export function formatSpan(start: string, end: string): string {
+  const sameHalf = (start.slice(-5) < '12:00') === (end.slice(-5) < '12:00');
+  return `${formatDay(start)} ${formatTime(start, !sameHalf)} – ${formatTime(end)}`;
 }
 
 /** 90 becomes '1h 30m'. */

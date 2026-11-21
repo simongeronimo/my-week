@@ -87,9 +87,11 @@ label { font-size: 12px; font-weight: 600; }
 .fc .fc-col-header-cell-cushion { padding: 0 6px 8px; font-weight: 600; color: var(--ink); text-decoration: none; }
 .fc .fc-day-past .fc-col-header-cell-cushion { color: var(--muted); font-weight: 500; }
 .fc .fc-day-today .fc-col-header-cell-cushion { color: var(--accent); }
-.fc .fc-timegrid-slot { height: 24px; border-color: transparent; }
+/* 32px per 30 minutes, so a 15-minute block is 16px. FullCalendar draws every block at least 15px tall and finds clashes by that height, so with 24px rows a 15-minute block pushed the next one aside. */
+.fc .fc-timegrid-slot { height: 32px; border-color: transparent; }
+.fc .fc-timegrid-slot-lane:not(.fc-timegrid-slot-minor) { border-top-color: var(--line); } /* a faint line on every full hour */
 .fc .fc-timegrid-slot-label-cushion { font: 400 11px var(--mono); color: var(--muted); }
-.fc .fc-timegrid-col:not(.fc-timegrid-axis) { background-image: radial-gradient(circle, var(--dot) 1px, transparent 1.5px); background-size: 24px 24px; background-position: -12px -12px; }
+.fc .fc-timegrid-col:not(.fc-timegrid-axis) { background-image: radial-gradient(circle, var(--dot) 1px, transparent 1.5px); background-size: 32px 32px; background-position: -16px -16px; }
 .fc .fc-timegrid-now-indicator-line { border-width: 2px 0 0; }
 
 /* Blocks */
@@ -110,10 +112,16 @@ label { font-size: 12px; font-weight: 600; }
 .blk .sig.box { position: relative; width: 12px; height: 12px; display: inline-grid; place-items: center; align-self: center; border: 1px solid currentColor; border-radius: 2px; font-size: 9px; line-height: 1; } /* a task's tick box: tap it to tick */
 .blk .sig.box::before { content: ''; position: absolute; inset: -6px -8px; } /* a bigger tap target than the box itself */
 .blk .ttl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.blk .mig, .blk .tm { font: 400 11px/15px var(--mono); opacity: 0.75; }
+.blk .mig, .blk .tm, .blk .st { font: 400 11px/15px var(--mono); opacity: 0.75; }
 .fc-timegrid-event-short .blk { padding-block: 0; }
 .fc-timegrid-event-short .blk .tm { display: none; }
-/* A block shows its description only when it has room: one line from about 1h 30m on the week grid, three lines from 2h */
+.blk .st { display: none; }
+.fc-timegrid-event-short .blk .st { display: inline; } /* a block too short for its time line shows the start before the title */
+/* The tag above a block while it drags or resizes. It sits outside .blk, which would clip it. */
+.drag-tag { position: absolute; left: -1px; bottom: calc(100% + 3px); padding: 0 5px; border-radius: var(--radius); background: var(--ink); color: var(--paper); box-shadow: 0 0 0 1px var(--bg); font: 500 11px/17px var(--mono); white-space: nowrap; pointer-events: none; } /* the ring keeps it apart from a dark event block under it */
+.drag-tag.below { top: calc(100% + 3px); bottom: auto; }
+.fc .fc-timegrid-col-events:has(.fc-event-mirror) { z-index: 5; } /* so the tag also covers blocks in the next day and the now line */
+/* A block shows its description only when it has room: one line from about 1h on the week grid, three lines from 1h 30m */
 .blk .desc { display: none; font-size: 11px; line-height: 15px; color: inherit; opacity: 0.75; white-space: normal; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
 @container (min-height: 45px) { .blk .desc { display: -webkit-box; } }
 @container (min-height: 75px) { .blk .desc { -webkit-line-clamp: 3; } }
@@ -261,7 +269,8 @@ legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
 .phone.day { height: 100dvh; gap: 10px; padding: 12px 16px max(12px, env(safe-area-inset-bottom)); }
 .day-grid { flex: 1; min-height: 0; }
 .day-grid .fc { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation; } /* a long press drags instead of selecting text, and a double tap adds a task instead of zooming */
-.day-grid .fc .fc-timegrid-slot { height: 48px; } /* twice the desktop's, so a 15-minute block is 24px and its title fits */
+.day-grid .fc .fc-timegrid-slot { height: 48px; } /* so a 15-minute block is 24px, big enough for its title and a finger */
+.day-grid .fc .fc-timegrid-col:not(.fc-timegrid-axis) { background-size: 24px 24px; background-position: -12px -12px; } /* two dots per 48px row */
 
 /* Day page task panel: slides over the grid from the right, and out of the way while a task is dragged */
 .drawer {
