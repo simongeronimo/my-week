@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react';
 import type { MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent } from 'react';
+import type { EventMountArg } from '@fullcalendar/core';
 import type { DateClickArg, EventDragStartArg } from '@fullcalendar/interaction';
 import type { Entry } from '../shared/types.ts';
+import { blocksBehind } from './push.ts';
 
 type Sample = { x: number; y: number; t: number };
 type Velocity = { vx: number; vy: number };
@@ -204,6 +206,62 @@ export function useHoldDrag(on: HoldDrag) {
       if (e.button === 0 && Date.now() - lastTouch.current > 1000) begin(id, e.clientX, e.clientY);
     },
   });
+}
+
+/** Hold a grid block still this long, in ms, before moving it, and the blocks right behind it move along. */
+const PUSH_MS = 1000;
+
+/**
+ * Watches presses on grid blocks. One held still for PUSH_MS switches to push mode. It and the blocks
+ * behind it get marked until the press ends, and pushedBy hands those blocks to its drop. Moving or
+ * letting go sooner cancels. On a phone FullCalendar's long press starts the drag first, at HOLD_MS.
+ */
+export function usePushHold() {
+  const held = useRef<{ id: string; behind: Entry[] } | null>(null);
+
+  function eventDidMount({ el, event, view, isMirror }: EventMountArg) {
+    el.dataset.block = event.id; // not data-id, which the drop handler reads from inbox items
+    if (isMirror) return;
+    const press = (e: Pointer) => {
+      if ('touches' in e ? e.touches.length > 1 : e.button !== 0) return;
+      if ((e.target as Element).closest('.fc-event-resizer')) return; // resizing never pushes
+      held.current = null;
+      const from = pointOf(e);
+      const timer = setTimeout(() => {
+        const entry = event.extendedProps.entry as Entry;
+        const entries = view.calendar.getEvents().map((ev) => ev.extendedProps.entry as Entry);
+        const behind = blocksBehind(entries, entry, entry.start!);
+        if (behind.length === 0) return;
+        held.current = { id: event.id, behind };
+        document.body.classList.add('pushing'); // marks FullCalendar's drag copy, which it draws and redraws itself
+        for (const id of [event.id, ...behind.map((b) => b.id)]) {
+          for (const block of document.querySelectorAll(`.fc-event[data-block="${id}"]`)) block.classList.add('push');
+        }
+      }, PUSH_MS);
+      const move = (e: Pointer) => {
+        const p = pointOf(e);
+        if (Math.hypot(p.clientX - from.clientX, p.clientY - from.clientY) > HOLD_SLOP) clearTimeout(timer);
+      };
+      // Clears the marks only. held stays for eventDrop, which FullCalendar calls after this release.
+      const release = () => {
+        clearTimeout(timer);
+        for (const [type, fn] of listeners) document.removeEventListener(type, fn as EventListener, options);
+        document.body.classList.remove('pushing');
+        for (const block of document.querySelectorAll('.fc-event.push')) block.classList.remove('push');
+      };
+      const listeners = [['mousemove', move], ['touchmove', move], ['mouseup', release], ['touchend', release], ['touchcancel', release]] as const;
+      const options = { capture: true, passive: true };
+      for (const [type, fn] of listeners) document.addEventListener(type, fn as EventListener, options);
+    };
+    el.addEventListener('mousedown', press);
+    el.addEventListener('touchstart', press, { passive: true });
+  }
+
+  return {
+    eventDidMount,
+    /** The blocks to push along with the block just dropped, or null when it wasn't held long enough. */
+    pushedBy: (id: string) => (held.current?.id === id ? held.current.behind : null),
+  };
 }
 
 function swallowNextClick() {

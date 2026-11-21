@@ -14,7 +14,7 @@ import { api } from './api.ts';
 import { InboxPanel } from './InboxPanel.tsx';
 import { plainText, withinOneDay } from './block.ts';
 import { EntryDialog, NewTaskDialog } from './EntryDialog.tsx';
-import { useDoubleTap, useThrowAway } from './gestures.ts';
+import { useDoubleTap, usePushHold, useThrowAway } from './gestures.ts';
 import { ErrorBanner, addEntry, browserNow, saveUpdate, useErrors, useSave } from './page.tsx';
 import type { Save } from './page.tsx';
 import { STEP, TIMELINE_FROM, TIMELINE_TO } from './today.ts';
@@ -59,6 +59,22 @@ function moveOrResize(save: Save, info: EventDropArg | EventResizeDoneArg) {
   save(api.updateEntry(entry.id, changes), info.revert, () => api.updateEntry(entry.id, before));
 }
 
+/**
+ * Saves a block dropped in push mode, and moves the blocks behind it by as many minutes, even onto
+ * another day. It's one save, so one Ctrl+Z puts them all back. Returns how many blocks moved.
+ */
+function pushAlong(save: Save, setWeek: Dispatch<SetStateAction<WeekView | null>>, info: EventDropArg, behind: Entry[]): number {
+  const entry = info.event.extendedProps.entry as Entry;
+  // Wall-clock times read as UTC, so a clock change between the two days doesn't shift the others by an hour.
+  const minutes = minutesBetween(new Date(`${entry.start}:00Z`), new Date(`${fromDate(info.event.start!)}:00Z`));
+  const moves = [entry, ...behind].map((e) => ({ id: e.id, from: e.start!, to: addMinutes(e.start!, minutes) }));
+  const moved = new Map(moves.map((m) => [m.id, m.to]));
+  setWeek((w) => w && { ...w, entries: w.entries.map((e) => (moved.has(e.id) ? { ...e, start: moved.get(e.id)! } : e)) }); // in place at once, not after the reload
+  const startAll = (at: 'from' | 'to') => Promise.all(moves.map((m) => api.updateEntry(m.id, { start: m[at] })));
+  save(startAll('to'), undefined, () => startAll('from')); // no revert, because the reload after a failed save puts them back
+  return moves.length;
+}
+
 /** Saves an inbox task dropped on the grid, starting where it landed. */
 function placeDropped(save: Save, info: DropArg) {
   const { id, start } = info.draggedEl.dataset; // start is empty for an inbox task, a past time for an overdue one
@@ -67,29 +83,37 @@ function placeDropped(save: Save, info: DropArg) {
 
 /**
  * What the week page and the day page share on top of the grid: dropping inbox tasks on it, tapping
- * a task's box to tick it, tapping the rest of a block to open it, throwing a block away, double-click
- * or double-tap to add a task, and the undo bar after a throw. Spread calendarProps on FullCalendar and render overlays after it.
+ * a task's box to tick it, tapping the rest of a block to open it, throwing a block away, holding a block
+ * to push the ones behind it, double-click or double-tap to add a task, and the undo bar after a throw
+ * or a push. Spread calendarProps on FullCalendar and render overlays after it.
  */
 export function useGridExtras(
   save: Save, undo: () => void, setWeek: Dispatch<SetStateAction<WeekView | null>>, onOpen: (entry: Entry) => void,
 ) {
-  const [thrown, setThrown] = useState<{ title: string; at: number } | null>(null);
+  const [bar, setBar] = useState<{ text: string; at: number } | null>(null);
   const [newAt, setNewAt] = useState<Date | null>(null);
 
   const throwing = useThrowAway((entry) => {
     setWeek((w) => w && { ...w, entries: w.entries.filter((e) => e.id !== entry.id) }); // gone at once, not after the reload
     // Thrown blocks are hidden as cancelled, not erased, so undo can always bring them back.
     saveUpdate(save, entry, { status: 'cancelled' });
-    setThrown({ title: entry.title, at: Date.now() });
+    setBar({ text: `Threw away "${entry.title}"`, at: Date.now() });
   });
+  const pushing = usePushHold();
   const dateClick = useDoubleTap(setNewAt);
 
   const calendarProps = {
     droppable: true,
     drop: (info: DropArg) => placeDropped(save, info),
+    eventDidMount: pushing.eventDidMount,
     eventDragStart: throwing.eventDragStart,
     eventDragStop: throwing.eventDragStop,
-    eventDrop: (info: EventDropArg) => (throwing.wasThrown(info.event.id) ? info.event.remove() : moveOrResize(save, info)),
+    eventDrop: (info: EventDropArg) => {
+      const behind = pushing.pushedBy(info.event.id);
+      if (throwing.wasThrown(info.event.id)) info.event.remove();
+      else if (behind) setBar({ text: `Moved ${pushAlong(save, setWeek, info, behind)} blocks`, at: Date.now() });
+      else moveOrResize(save, info);
+    },
     eventResize: (info: EventResizeDoneArg) => moveOrResize(save, info),
     eventClick: (info: EventClickArg) => {
       const entry = info.event.extendedProps.entry as Entry;
@@ -103,9 +127,9 @@ export function useGridExtras(
   };
   const overlays = (
     <>
-      {thrown && (
-        // ponytail: Undo here reverses the last change, which is the throw unless you change something else within 5 seconds
-        <UndoBar key={thrown.at} text={`Threw away "${thrown.title}"`} onUndo={() => { undo(); setThrown(null); }} onDone={() => setThrown(null)} />
+      {bar && (
+        // ponytail: Undo here reverses the last change, which is the throw or push unless you change something else within 5 seconds
+        <UndoBar key={bar.at} text={bar.text} onUndo={() => { undo(); setBar(null); }} onDone={() => setBar(null)} />
       )}
       {newAt && <NewTaskDialog start={newAt} save={save} onClose={() => setNewAt(null)} />}
     </>
@@ -118,7 +142,7 @@ function UndoBar({ text, onUndo, onDone }: { text: string; onUndo: () => void; o
   useEffect(() => {
     const timer = setTimeout(onDone, 5000);
     return () => clearTimeout(timer);
-  }, []); // once per bar: each throw remounts it through its key
+  }, []); // once per bar: each throw or push remounts it through its key
   return (
     <div className="undo-bar" role="status">
       <span>{text}</span>

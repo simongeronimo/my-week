@@ -292,9 +292,10 @@ body:has(> .fc-event-dragging) .drawer-backdrop { display: none; } /* FullCalend
 .drawer .item { min-height: 44px; align-items: center; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; } /* not on the drawer itself: iOS won't type into an input under user-select: none */
 @media (prefers-reduced-motion: reduce) { .drawer { transition: none; } }
 
-/* Throwing a block away, and the undo bar after it */
+/* Throwing a block away or pushing the ones behind it, and the undo bar after it */
 .thrown { position: fixed; z-index: 20; margin: 0; pointer-events: none; visibility: visible; }
 .throwing .fc-event-dragging, .throwing .fc-event-mirror { visibility: hidden; } /* FullCalendar's own copy snaps back while ours flies off */
+.fc .fc-event.push, .pushing .fc-event-mirror { outline: 2px solid var(--accent); outline-offset: 1px; } /* held long enough to push the blocks behind it */
 .undo-bar {
   position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); z-index: 11; transform: translateX(-50%);
   max-width: calc(100vw - 32px); display: flex; align-items: center; gap: 12px; padding: 6px 6px 6px 14px;
