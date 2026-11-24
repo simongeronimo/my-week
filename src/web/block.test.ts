@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { firstLine, habitsFor, isSafeLink, itemMeta, lexNotes, plainText, toggleTask, withinOneDay } from './block.ts';
+import { copyForward, dayDrop, firstLine, habitsFor, isSafeLink, itemMeta, lexNotes, plainText, toggleTask, withinOneDay } from './block.ts';
 import type { Entry } from '../shared/types.ts';
 
 test('a selection on the grid must stay within one day', () => {
@@ -86,4 +86,43 @@ test('checklist boxes count like the rendered ones', () => {
 test('only web and mail links become links', () => {
   for (const href of ['https://example.com', 'http://example.com', 'HTTPS://EXAMPLE.COM', 'mailto:me@example.com']) assert.equal(isSafeLink(href), true, href);
   for (const href of ['javascript:alert(1)', ' javascript:alert(1)', 'data:text/html,hi', 'vbscript:x', '/inbox', '']) assert.equal(isSafeLink(href), false, href);
+});
+
+const entry = (fields: Partial<Entry>): Entry => ({
+  id: 1, kind: 'task', title: 'x', notes: null, start: null, duration: 30,
+  status: 'open', migrations: 0, routine_id: null, created_by: 'me', day: null, ...fields,
+});
+
+test('copying a day forward places the next day\'s copies of its placed habits at the same times', () => {
+  const placed = [
+    entry({ id: 1, routine_id: 7, day: '2026-11-23', start: '2026-11-23T20:00' }), // Gaming, Monday 8 pm
+    entry({ id: 2, routine_id: 8, day: '2026-11-23', start: '2026-11-23T22:30' }), // Skin care, Monday 10:30 pm
+    entry({ id: 3, routine_id: 9, day: '2026-11-23', start: '2026-11-23T07:00' }), // a habit Tuesday doesn't have
+    entry({ id: 4, routine_id: 5, day: null, start: '2026-11-23T08:00' }), // a timed routine, not a habit
+    entry({ id: 5, routine_id: 7, day: '2026-11-24', start: '2026-11-24T09:00' }), // Tuesday's own Gaming, already placed
+  ];
+  const unplaced = [
+    entry({ id: 11, routine_id: 7, day: '2026-11-25' }), // Wednesday's Gaming
+    entry({ id: 12, routine_id: 8, day: '2026-11-24' }), // Tuesday's Skin care
+  ];
+  const moves = (day: string) => copyForward(placed, unplaced, day).map((m) => `${m.copy.id} ${m.start}`);
+  assert.deepEqual(moves('2026-11-23'), ['12 2026-11-24T22:30']); // Tuesday's Gaming is placed already
+  assert.deepEqual(moves('2026-11-24'), ['11 2026-11-25T09:00']);
+  assert.deepEqual(moves('2026-11-26'), []);
+});
+
+test('dropping an item on a day label gives it that day, and on the inbox takes it away', () => {
+  const inboxTask = entry({});
+  const dayTask = entry({ day: '2026-11-25' });
+  const overdue = entry({ start: '2026-11-23T09:00' });
+  const habitCopy = entry({ routine_id: 7, day: '2026-11-25' });
+  assert.deepEqual(dayDrop(inboxTask, '2026-11-26'), { day: '2026-11-26' });
+  assert.deepEqual(dayDrop(dayTask, '2026-11-26'), { day: '2026-11-26' });
+  assert.deepEqual(dayDrop(overdue, '2026-11-26'), { start: null, day: '2026-11-26' }); // its time is gone, the day is new
+  assert.deepEqual(dayDrop(dayTask, null), { day: null });
+  assert.deepEqual(dayDrop(overdue, null), { start: null });
+  assert.deepEqual(dayDrop(entry({ start: '2026-11-23T09:00', day: '2026-11-23' }), null), { start: null, day: null }); // a placed day task, overdue
+  assert.equal(dayDrop(dayTask, '2026-11-25'), null); // already there
+  assert.equal(dayDrop(inboxTask, null), null);
+  assert.equal(dayDrop(habitCopy, '2026-11-26'), null); // habit copies keep their day
 });

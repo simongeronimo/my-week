@@ -12,7 +12,8 @@ import {
 } from '../shared/time.ts';
 import { api } from './api.ts';
 import { InboxPanel } from './InboxPanel.tsx';
-import { plainText, withinOneDay } from './block.ts';
+import { copyForward, plainText, withinOneDay } from './block.ts';
+import { DayHeader, DayPopover, dayItems, useDayDrop } from './DayList.tsx';
 import { EntryDialog, NewTaskDialog } from './EntryDialog.tsx';
 import { useDoubleTap, usePushHold, useThrowAway } from './gestures.ts';
 import { ErrorBanner, addEntry, browserNow, saveUpdate, useErrors, useSave } from './page.tsx';
@@ -136,7 +137,7 @@ export function useGridExtras(
       {newAt && <NewTaskDialog start={newAt} habits={habits} save={save} onClose={() => setNewAt(null)} />}
     </>
   );
-  return { calendarProps, overlays };
+  return { calendarProps, overlays, notify: (text: string) => setBar({ text, at: Date.now() }) };
 }
 
 /** A short-lived bar with an Undo button, for the phone, which has no Ctrl+Z. */
@@ -236,8 +237,28 @@ export function Planner({ onAuthError }: { onAuthError: () => void }) {
   }, [load]);
 
   const { save, undo } = useSave(load, fail);
-  const { calendarProps, overlays } = useGridExtras(save, undo, setWeek, setOpenEntry, week?.habits ?? []);
+  const { calendarProps, overlays, notify } = useGridExtras(save, undo, setWeek, setOpenEntry, week?.habits ?? []);
   const events = useMemo(() => toEvents(week?.entries ?? []), [week]); // a new array each render would make FullCalendar redraw every block
+  const today = browserNow().slice(0, 10);
+
+  const [list, setList] = useState<{ day: string; anchor: DOMRect } | null>(null);
+  const closeList = useCallback(() => setList(null), []);
+  const weekRef = useRef(week);
+  weekRef.current = week;
+  const find = useCallback((id: number) => {
+    const w = weekRef.current;
+    return w ? [...w.inbox, ...w.unfinished, ...w.habits, ...w.dayTasks].find((e) => e.id === id) : undefined;
+  }, []);
+  useDayDrop(find, save);
+
+  /** The → between two day labels: the next day's habits go to the times they have on this day, in one undo step. */
+  function copyDay(day: string) {
+    const moves = week ? copyForward(week.entries, week.habits, day) : [];
+    if (moves.length === 0) return;
+    const placeAll = (placed: boolean) => Promise.all(moves.map((m) => api.updateEntry(m.copy.id, { start: placed ? m.start : null })));
+    save(placeAll(true), undefined, () => placeAll(false));
+    notify(`Placed ${moves.length} ${moves.length === 1 ? 'habit' : 'habits'} on ${formatDay(addDays(day, 1))}`);
+  }
 
   function onSelect(info: DateSelectArg) {
     info.view.calendar.unselect();
@@ -274,13 +295,28 @@ export function Planner({ onAuthError }: { onAuthError: () => void }) {
             selectable
             selectMinDistance={5}
             selectAllow={(span) => withinOneDay(span.start, span.end)}
-            dayHeaderContent={(arg) => `${formatDay(fromDate(arg.date))} ${arg.date.getDate()}`}
+            dayHeaderContent={(arg) => {
+              const day = fromDate(arg.date).slice(0, 10);
+              return (
+                <DayHeader
+                  day={day}
+                  today={today}
+                  count={dayItems(week, day, today).length}
+                  copies={week ? copyForward(week.entries, week.habits, day).length : 0} // none on Sunday: next Monday's copies aren't in this week
+                  onList={(d, anchor) => setList(list?.day === d ? null : { day: d, anchor })}
+                  onCopy={copyDay}
+                />
+              );
+            }}
             events={events}
             {...calendarProps}
             select={onSelect}
           />
         </main>
       </div>
+      {list && (
+        <DayPopover day={list.day} week={week} today={today} anchor={list.anchor} save={save} onOpen={(e) => { setList(null); setOpenEntry(e); }} onClose={closeList} />
+      )}
       {openEntry && <EntryDialog entry={openEntry} save={save} onClose={() => setOpenEntry(null)} />}
       {overlays}
     </div>

@@ -12,10 +12,10 @@ my-week is the user's week planner. You can read their week and add tasks to the
 
 | Request | What it does |
 |---|---|
-| `GET /api/week?monday=YYYY-MM-DD` | The week that starts on that Monday, as `{ monday, entries, inbox, unfinished, habits }`. Without `monday` you get the current week. |
+| `GET /api/week?monday=YYYY-MM-DD` | The week that starts on that Monday, as `{ monday, entries, inbox, unfinished, habits, dayTasks }`. Without `monday` you get the current week. |
 | `GET /api/routines` | The user's recurring blocks, such as work and dinner, and their habits. |
 | `GET /api/guide` | This guide. |
-| `POST /api/entries` | Adds a task to the inbox. Send `{"kind": "task", "title": "...", "duration": 30}`, and optionally `"notes"`. |
+| `POST /api/entries` | Adds a task to the inbox. Send `{"kind": "task", "title": "...", "duration": 30}`, and optionally `"notes"`. Add `"day": "2026-11-27"` when the task belongs to a certain day but has no time yet. |
 
 Everything else gets a `403`: moving, ticking, editing or deleting entries, creating events, giving a task a start time, and changing routines. Those decisions belong to the user.
 
@@ -33,9 +33,9 @@ Everything else gets a `403`: moving, ticking, editing or deleting entries, crea
 | `migrations` | How often the user carried this task forward after its time passed. |
 | `routine_id` | Set when the entry is a copy of a routine. |
 | `created_by` | `me` or `agent`. |
-| `day` | The day a habit copy belongs to, like `2026-11-25`. Null for everything else. |
+| `day` | The day a habit copy or a day task belongs to, like `2026-11-25`. Null for everything else. |
 
-`inbox` holds open tasks with no start, except habit copies. `unfinished` holds open tasks whose time has passed.
+`inbox` holds open tasks with no start and no `day`. `dayTasks` holds open tasks with a `day` in the requested week, from today on, that have no start and aren't habit copies. `unfinished` holds open tasks whose time has passed, and day tasks whose day has passed.
 
 ## Habits
 

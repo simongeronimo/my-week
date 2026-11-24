@@ -52,6 +52,10 @@ Open `/routines` (the Routines button on the week page) to add and delete routin
 
 Choose Any time instead of a time to make a habit: something to do on those days whenever it suits you, like an hour of gaming. Each day's habits show in a Habits section of the inbox until you drag them onto the grid, tick them or delete them, and the new task dialog offers them when you double-click that day. With Carry over on, a missed habit keeps showing on the following days until Sunday night. With it off, it's gone the next day.
 
+To give tomorrow the same habit times as today, hover over the line between the two day labels on the week grid and click the → that appears. It places the next day's habits at the same times, and Undo takes them off again.
+
+For things to do on a certain day when you don't know the time yet, click the list icon next to that day's label. Its dropdown holds the day's unplaced habits and tasks, and has a form to add more. Drag them onto the grid once you know when. To move a task to another day, drag it onto that day's label, or open it and change its Day. Drag it onto the inbox, or press No day, to send it back to the plain inbox. A day task you didn't do goes to Overdue the next morning. On the phone, today's show at the top of the Today page, and the Arrange day page has the same list icon.
+
 You can also use curl:
 
 ```sh

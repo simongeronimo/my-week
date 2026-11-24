@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import type { RefObject } from 'react';
 import { Draggable } from '@fullcalendar/interaction';
 import type { Entry, WeekView } from '../shared/types.ts';
 import { formatDuration, parseDuration } from '../shared/time.ts';
@@ -10,18 +11,21 @@ const DURATIONS = [15, 30, 45, 60, 90, 120];
 
 type Props = { week: WeekView | null; save: Save; onOpen: (entry: Entry) => void };
 
-export function InboxPanel({ week, save, onOpen }: Props) {
-  const ref = useRef<HTMLElement>(null);
-
+/** Lets every .item inside ref be dropped on the grid. The grid's `drop` callback saves the new start. */
+export function useItemDrag(ref: RefObject<HTMLElement | null>) {
   useEffect(() => {
-    // Any .item in this panel can be dropped on the grid; the grid's `drop` callback saves the new start.
     const draggable = new Draggable(ref.current!, {
       itemSelector: '.item',
       longPressDelay: 300, // on a phone, hold a task this long (ms) before it drags, so the list still scrolls
       eventData: (el) => ({ title: el.dataset.title, duration: { minutes: Number(el.dataset.duration) }, create: false }),
     });
     return () => draggable.destroy();
-  }, []);
+  }, [ref]);
+}
+
+export function InboxPanel({ week, save, onOpen }: Props) {
+  const ref = useRef<HTMLElement>(null);
+  useItemDrag(ref);
 
   const unfinished = week?.unfinished ?? [];
   const inbox = week?.inbox ?? [];
@@ -38,7 +42,7 @@ export function InboxPanel({ week, save, onOpen }: Props) {
           <h2>Overdue <span className="count">{unfinished.length}</span></h2>
           <p className="hint">Time passed without a tick. Drag it to a new time, or open it to tick or delete it.</p>
           <ul className="list">
-            {unfinished.map((entry) => <Item key={entry.id} entry={entry} unfinished onOpen={onOpen} />)}
+            {unfinished.map((entry) => <Item key={entry.id} entry={entry} unfinished today={today} onOpen={onOpen} />)}
           </ul>
         </section>
       )}
@@ -64,10 +68,10 @@ export function InboxPanel({ week, save, onOpen }: Props) {
 
 type ItemProps = { entry: Entry; unfinished?: boolean; today?: string; onOpen: (entry: Entry) => void };
 
-function Item({ entry, unfinished = false, today, onOpen }: ItemProps) {
+export function Item({ entry, unfinished = false, today, onOpen }: ItemProps) {
   const meta = itemMeta(entry, unfinished, today);
   return (
-    <li className={unfinished ? 'item overdue' : entry.day ? 'item habit' : 'item'} data-id={entry.id} data-title={entry.title} data-duration={entry.duration} data-start={entry.start ?? ''}>
+    <li className={unfinished ? 'item overdue' : entry.routine_id !== null && entry.day !== null ? 'item habit' : 'item'} data-id={entry.id} data-title={entry.title} data-duration={entry.duration} data-start={entry.start ?? ''}>
       <span className="sig" aria-hidden="true">•</span>
       <button type="button" className="item-body" onClick={() => onOpen(entry)}>
         <span className="t">{entry.title}</span>

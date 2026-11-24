@@ -19,6 +19,9 @@ export function EntryDialog({ entry, save, onClose }: Props) {
   const [editing, setEditing] = useState(!hasNotes);
   const saved = useRef(entry); // ticking a box saves while the dialog stays open, so undoing Save must put back the ticked text
   const [duration, setDuration] = useState(entry.duration);
+  // An unplaced task picks its day here, or none for the plain inbox. Habit copies keep theirs.
+  const hasDay = entry.kind === 'task' && entry.start === null && entry.routine_id === null;
+  const [day, setDay] = useState(entry.day ?? '');
 
   const update = (changes: EntryChanges, before?: EntryChanges) => {
     onClose();
@@ -42,7 +45,7 @@ export function EntryDialog({ entry, save, onClose }: Props) {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          update({ title: title.trim(), notes: notes.trim() || null, duration });
+          update({ title: title.trim(), notes: notes.trim() || null, duration, ...(hasDay && { day: day || null }) });
         }}
       >
         <h2 id="entry-dialog-title">{isTask ? 'Task' : 'Event'}</h2>
@@ -58,6 +61,15 @@ export function EntryDialog({ entry, save, onClose }: Props) {
           </>
         )}
         <LengthPicker legend="Length" value={duration} onChange={setDuration} />
+        {hasDay && (
+          <>
+            <label htmlFor="entry-day">Day</label>
+            <div className="day-field">
+              <input id="entry-day" type="date" value={day} onChange={(e) => setDay(e.target.value)} />
+              <button type="button" className="btn" disabled={!day} onClick={() => setDay('')}>No day</button>
+            </div>
+          </>
+        )}
         <div className="actions">
           {isTask && (
             <button type="button" className="btn" onClick={() => update({ status: done ? 'open' : 'done' })}>

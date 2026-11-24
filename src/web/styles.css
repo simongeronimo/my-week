@@ -63,6 +63,7 @@ label { font-size: 12px; font-weight: 600; }
 /* Inbox panel */
 .inbox { display: flex; flex-direction: column; gap: 22px; }
 .body > .inbox { width: 300px; flex: none; overflow-y: auto; } /* the desktop's panel; the phone's drawer scrolls on its own */
+.body > .inbox.drop-here { outline: 2px solid var(--accent); outline-offset: 4px; } /* a day task dropped here goes back to the plain inbox */
 .inbox h2 { margin: 0; display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; }
 .count { font: 400 12px var(--mono); color: var(--muted); }
 .hint { margin: 4px 0 8px; font-size: 12px; color: var(--muted); }
@@ -90,6 +91,15 @@ label { font-size: 12px; font-weight: 600; }
 .fc .fc-col-header-cell-cushion { padding: 0 6px 8px; font-weight: 600; color: var(--ink); text-decoration: none; }
 .fc .fc-day-past .fc-col-header-cell-cushion { color: var(--muted); font-weight: 500; }
 .fc .fc-day-today .fc-col-header-cell-cushion { color: var(--accent); }
+.fc .fc-col-header-cell { position: relative; } /* the → button sits on the line to the next day */
+.fc .fc-col-header-cell.drop-here { background: color-mix(in srgb, var(--accent) 12%, transparent); } /* the day an item would move to */
+.day-head { display: inline-flex; align-items: center; gap: 6px; }
+.day-head .day-btn { height: 22px; display: inline-flex; align-items: center; gap: 3px; padding: 0 5px; border: 1px solid transparent; border-radius: var(--radius); background: none; color: var(--muted); font: 500 11px var(--mono); cursor: pointer; }
+.day-head .day-btn:hover { border-color: var(--line); color: var(--ink); }
+.day-head .day-btn.has { border-color: var(--ink); color: var(--ink); }
+.copy-fwd { position: absolute; top: 0; bottom: 0; right: -12px; z-index: 2; width: 24px; display: grid; place-items: center; padding: 0; border: 0; background: none; cursor: pointer; opacity: 0; transition: opacity 0.12s ease; }
+.copy-fwd:hover, .copy-fwd:focus-visible { opacity: 1; }
+.copy-fwd > span { width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; background: var(--accent); color: var(--on-accent); }
 /* 32px per 30 minutes, so a 15-minute block is 16px. FullCalendar draws every block at least 15px tall and finds clashes by that height, so with 24px rows a 15-minute block pushed the next one aside. */
 .fc .fc-timegrid-slot { height: 32px; border-color: transparent; }
 .fc .fc-timegrid-slot-lane:not(.fc-timegrid-slot-minor) { border-top-color: var(--line); } /* a faint line on every full hour */
@@ -137,6 +147,13 @@ label { font-size: 12px; font-weight: 600; }
 .entry-dialog h2 { margin: 0 0 4px; font-size: 15px; }
 .habit-picks { margin: 18px 18px 0; } /* above the new task form, which brings its own 18px */
 .habit-picks .item { width: 100%; text-align: left; cursor: pointer; }
+.day-pop { position: fixed; z-index: 20; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding: 12px; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper); box-shadow: 0 8px 24px rgb(28 28 31 / 0.12); }
+.day-pop .quick-add { padding: 0; }
+.day-pop .hint { margin: 0; }
+body:has(> .fc-event-dragging) .day-pop { visibility: hidden; } /* out of the way while one of its items is dragged, like the phone drawer */
+.day-field { display: flex; gap: 8px; }
+.day-field input { flex: 1; min-width: 0; }
+.btn.day-btn { display: inline-flex; align-items: center; gap: 4px; }
 /* A description's Markdown, compact to fit the dialog */
 .md { font-size: 14px; line-height: 20px; overflow-wrap: anywhere; }
 .md > :first-child { margin-top: 0; }
@@ -231,6 +248,10 @@ legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
 .entry.past, .entry.done { opacity: 0.55; }
 .entry.done .ttl { text-decoration: line-through; }
 .entry.overdue .tick, .entry.overdue .time { color: var(--over); } /* time passed without a tick */
+.any-time { margin-bottom: 14px; }
+.any-time h2 { margin: 0 0 4px 62px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.any-time ul { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.any-time .entry { height: 52px; grid-template-columns: 44px minmax(0, 1fr) auto; padding-left: 62px; } /* no time, so the boxes line up with the day list's */
 .free-row { display: flex; align-items: center; padding-left: 106px; font-size: 12px; color: var(--muted); }
 .free-row.past { opacity: 0.55; }
 .now-row { display: flex; align-items: center; color: var(--accent); }
@@ -296,7 +317,7 @@ body:has(> .fc-event-dragging) .drawer { transform: translateX(100%); } /* FullC
 body:has(> .fc-event-dragging) .drawer-backdrop { display: none; } /* FullCalendar only drops where the grid is the topmost element */
 .drawer-top { display: flex; align-items: center; justify-content: space-between; }
 .drawer-top h2 { margin: 0; font-size: 15px; font-weight: 600; }
-.drawer .item { min-height: 44px; align-items: center; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; } /* not on the drawer itself: iOS won't type into an input under user-select: none */
+.drawer .item, .day-pop .item { min-height: 44px; align-items: center; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; } /* not on the drawer itself: iOS won't type into an input under user-select: none */
 @media (prefers-reduced-motion: reduce) { .drawer { transition: none; } }
 
 /* Throwing a block away or pushing the ones behind it, and the undo bar after it */

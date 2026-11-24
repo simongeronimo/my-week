@@ -1,6 +1,6 @@
 import { Lexer } from 'marked';
-import type { Entry } from '../shared/types.ts';
-import { formatDay, formatTime, fromDate } from '../shared/time.ts';
+import type { Entry, EntryChanges } from '../shared/types.ts';
+import { addDays, formatDay, formatTime, fromDate } from '../shared/time.ts';
 
 /** The small note under an inbox item: when an unfinished task was planned, a carried habit's day, migrations, and who added it. */
 export function itemMeta(entry: Entry, unfinished: boolean, today = ''): string {
@@ -15,6 +15,34 @@ export function itemMeta(entry: Entry, unfinished: boolean, today = ''): string 
 /** The habit copies to offer on a day: that day's, plus the carried ones when the day is today. */
 export function habitsFor(habits: Entry[], day: string, today: string): Entry[] {
   return habits.filter((e) => e.day === day || (day === today && e.day! < today));
+}
+
+const isHabitCopy = (e: Entry) => e.routine_id !== null && e.day !== null;
+
+/**
+ * Copying a day forward: for each habit placed on day, the next day's unplaced copy of the same habit
+ * goes to the same time. Habits the next day doesn't have, or has placed already, are skipped.
+ */
+export function copyForward(entries: Entry[], habits: Entry[], day: string): Array<{ copy: Entry; start: string }> {
+  const next = addDays(day, 1);
+  return entries
+    .filter((e) => isHabitCopy(e) && e.start?.slice(0, 10) === day)
+    .flatMap((placed) => {
+      const copy = habits.find((h) => h.routine_id === placed.routine_id && h.day === next);
+      return copy ? [{ copy, start: next + placed.start!.slice(10) }] : [];
+    });
+}
+
+/**
+ * The change for an item dropped on a day label (a day) or on the inbox panel (null), or null for no change.
+ * An overdue task loses its passed time. Habit copies keep their day.
+ */
+export function dayDrop(entry: Entry, day: string | null): EntryChanges | null {
+  if (isHabitCopy(entry)) return null;
+  const changes: EntryChanges = {};
+  if (entry.start) changes.start = null;
+  if (entry.day !== day) changes.day = day;
+  return Object.keys(changes).length > 0 ? changes : null;
 }
 
 /** A selection must stay within one day. Its end is exclusive, so a slot ending at midnight still counts. */

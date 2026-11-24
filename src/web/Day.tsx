@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
+import { ListBulletsIcon } from '@phosphor-icons/react';
 import type { Entry, WeekView } from '../shared/types.ts';
 import { addDays, formatDate, mondayOf } from '../shared/time.ts';
 import { api } from './api.ts';
@@ -8,6 +9,7 @@ import { InboxPanel } from './InboxPanel.tsx';
 import { EntryDialog } from './EntryDialog.tsx';
 import { HOLD_MS } from './gestures.ts';
 import { habitsFor } from './block.ts';
+import { DayPopover, dayItems } from './DayList.tsx';
 import { ErrorBanner, browserNow, useErrors, useReloadOnShow, useSave } from './page.tsx';
 import { scrollTimeFor } from './today.ts';
 
@@ -17,6 +19,8 @@ export function Day({ onAuthError }: { onAuthError: () => void }) {
   const [week, setWeek] = useState<WeekView | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [openEntry, setOpenEntry] = useState<Entry | null>(null);
+  const [listAt, setListAt] = useState<DOMRect | null>(null); // the day list button, while its dropdown is open
+  const closeList = useCallback(() => setListAt(null), []);
   const { message, fail, clear } = useErrors(onAuthError);
   const calendarRef = useRef<FullCalendar>(null);
   const scrollTime = useMemo(() => scrollTimeFor(day, browserNow()), [day]); // fixed per day, so the grid never jumps
@@ -41,6 +45,7 @@ export function Day({ onAuthError }: { onAuthError: () => void }) {
 
   const today = browserNow().slice(0, 10);
   const toPlace = week ? week.unfinished.length + habitsFor(week.habits, today, today).length + week.inbox.length : 0;
+  const anyTime = dayItems(week, day, today).length;
 
   return (
     <main className="phone day">
@@ -49,6 +54,18 @@ export function Day({ onAuthError }: { onAuthError: () => void }) {
         <nav aria-label="Day navigation">
           <button type="button" className="btn" aria-label="Previous day" onClick={() => setDay(addDays(day, -1))}>←</button>
           <button type="button" className="btn" aria-label="Next day" onClick={() => setDay(addDays(day, 1))}>→</button>
+          {day >= today && (
+            <button
+              type="button"
+              className={anyTime > 0 ? 'btn day-btn has' : 'btn day-btn'}
+              aria-label={`Any time this day${anyTime > 0 ? `, ${anyTime}` : ''}`}
+              aria-expanded={listAt !== null}
+              onClick={(e) => setListAt(listAt ? null : e.currentTarget.getBoundingClientRect())}
+            >
+              <ListBulletsIcon size={18} aria-hidden="true" />
+              {anyTime > 0 && <span>{anyTime}</span>}
+            </button>
+          )}
           <button type="button" className="btn primary" aria-expanded={panelOpen} aria-controls="day-tasks" onClick={() => setPanelOpen(!panelOpen)}>
             Tasks {toPlace}
           </button>
@@ -78,6 +95,9 @@ export function Day({ onAuthError }: { onAuthError: () => void }) {
         </div>
         <InboxPanel week={week} save={save} onOpen={setOpenEntry} />
       </div>
+      {listAt && (
+        <DayPopover day={day} week={week} today={today} anchor={listAt} save={save} onOpen={(e) => { setListAt(null); setOpenEntry(e); }} onClose={closeList} />
+      )}
       {openEntry && <EntryDialog entry={openEntry} save={save} onClose={() => setOpenEntry(null)} />}
       {overlays}
     </main>
