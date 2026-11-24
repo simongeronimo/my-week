@@ -31,6 +31,7 @@ export type WeekView = {
   inbox: Entry[];
   unfinished: Entry[];
   habits: Entry[]; // open, unplaced habit copies; see getWeek on the server
+  dayTasks: Entry[]; // open tasks with a day in the shown week but no time yet, from today on
 };
 
 export type NewEntry = {
@@ -39,11 +40,12 @@ export type NewEntry = {
   notes?: string | null;
   start?: string | null;
   duration: number;
+  day?: string | null; // a day task: a day but no time yet
 };
 
 export type NewRoutine = Omit<Routine, 'id'>;
 
-export type EntryChanges = Partial<Pick<Entry, 'title' | 'notes' | 'start' | 'duration' | 'status'>>;
+export type EntryChanges = Partial<Pick<Entry, 'title' | 'notes' | 'start' | 'duration' | 'status' | 'day'>>;
 
 /** The bullet journal signifier in front of an entry: ○ event, • open task, × done task. The app and the calendar feed share it. */
 export const signifier = (e: Pick<Entry, 'kind' | 'status'>) => (e.kind === 'event' ? '○' : e.status === 'done' ? '×' : '•');

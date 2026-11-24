@@ -89,13 +89,22 @@ export function getWeek(db: DB, monday: string, now: string): WeekView {
        ORDER BY entries.day, entries.id`,
       [mondayOf(now), sunday > today ? sunday : today, today],
     ),
+    // Day tasks: a day but no time yet. Ones from before today are overdue instead.
+    dayTasks: all<Entry>(
+      db,
+      `SELECT * FROM entries
+       WHERE kind = 'task' AND status = 'open' AND start IS NULL AND routine_id IS NULL AND day >= ? AND day >= ? AND day <= ?
+       ORDER BY day, id`,
+      [today, monday, sunday],
+    ),
     unfinished: all<Entry>(
       db,
       `SELECT * FROM entries
-       WHERE kind = 'task' AND status = 'open' AND start IS NOT NULL
-         AND strftime('%Y-%m-%dT%H:%M', start, '+' || duration || ' minutes') <= ?
-       ORDER BY start`,
-      [now],
+       WHERE kind = 'task' AND status = 'open' AND (
+         (start IS NOT NULL AND strftime('%Y-%m-%dT%H:%M', start, '+' || duration || ' minutes') <= ?)
+         OR (start IS NULL AND routine_id IS NULL AND day < ?))
+       ORDER BY coalesce(start, day)`,
+      [now, today],
     ),
   };
 }
@@ -129,15 +138,25 @@ export function deleteRoutine(db: DB, id: number, now: string): void {
 
 // Entries
 
-const CREATE_FIELDS = ['kind', 'title', 'notes', 'start', 'duration'];
-const UPDATE_FIELDS = ['title', 'notes', 'start', 'duration', 'status'];
+const CREATE_FIELDS = ['kind', 'title', 'notes', 'start', 'duration', 'day'];
+const UPDATE_FIELDS = ['title', 'notes', 'start', 'duration', 'status', 'day'];
+
+/** The day column has no CHECK, because adding one would mean rebuilding entries, so its format is checked here. */
+function checkDay(row: Row): Row {
+  const day = row.day;
+  if (day === undefined || day === null) return row;
+  const date = new Date(`${day}T00:00Z`); // an impossible day like 11-31 rolls over into December instead of failing
+  const real = typeof day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(day) && !Number.isNaN(date.getTime()) && date.toISOString().startsWith(day);
+  if (!real) throw new HttpError(400, 'Field day must be a date like 2026-11-25, or null');
+  return row;
+}
 
 export function createEntry(db: DB, body: unknown, createdBy: 'me' | 'agent' = 'me'): Entry {
-  return insert<Entry>(db, 'entries', { ...pick(body, CREATE_FIELDS), created_by: createdBy });
+  return insert<Entry>(db, 'entries', { ...checkDay(pick(body, CREATE_FIELDS)), created_by: createdBy });
 }
 
 export function updateEntry(db: DB, id: number, body: unknown, now: string): Entry {
-  const changes: Row = { ...pick(body, UPDATE_FIELDS) };
+  const changes: Row = { ...checkDay(pick(body, UPDATE_FIELDS)) };
   const old = one<Entry>(db, 'SELECT * FROM entries WHERE id = ?', [id]);
   if (!old) throw new HttpError(404, `No entry with id ${id}`);
   if (Object.keys(changes).length === 0) return old;

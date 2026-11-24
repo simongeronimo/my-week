@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { all, openDb } from './db.ts';
 import type { DB } from './db.ts';
-import { createRoutine, deleteEntry, deleteRoutine, getWeek, updateEntry } from './week.ts';
+import { createEntry, createRoutine, deleteEntry, deleteRoutine, getWeek, updateEntry } from './week.ts';
 import type { Entry, WeekView } from '../shared/types.ts';
 
 const MONDAY = '2026-11-23';
@@ -143,4 +143,62 @@ test('deleting a habit removes its unplaced and future copies, and keeps the res
     [copies[1].id, null, '2026-11-24'],
   ]);
   assert.deepEqual(getWeek(db, MONDAY, WEDNESDAY_AFTERNOON).habits, []);
+});
+
+// Day tasks: a task for a certain day with no time yet.
+
+const dayTask = (title: string, day: string) => ({ kind: 'task', title, duration: 30, day });
+const titles = (entries: Entry[]) => entries.map((e) => e.title);
+
+test('a day task is listed on its day in the shown week, from today on, and not in the inbox', () => {
+  const db = openDb(':memory:');
+  for (const [title, day] of [['Yesterday', '2026-11-24'], ['Today', '2026-11-25'], ['Friday', '2026-11-27'], ['Next week', '2026-12-01']]) {
+    createEntry(db, dayTask(title, day));
+  }
+  createEntry(db, { kind: 'task', title: 'Plain', duration: 30 });
+  const week = getWeek(db, MONDAY, WEDNESDAY_AFTERNOON);
+  assert.deepEqual(titles(week.dayTasks), ['Today', 'Friday']);
+  assert.deepEqual(titles(week.inbox), ['Plain']);
+  assert.deepEqual(titles(getWeek(db, NEXT_MONDAY, WEDNESDAY_AFTERNOON).dayTasks), ['Next week']);
+});
+
+test('a day task left open after its day goes to Overdue in date order, until it gets a new day', () => {
+  const db = openDb(':memory:');
+  const missed = createEntry(db, dayTask('Call the bank', '2026-11-24'));
+  createEntry(db, { kind: 'task', title: 'Timed', start: '2026-11-25T09:00', duration: 30 });
+  updateEntry(db, createEntry(db, dayTask('Ticked', '2026-11-24')).id, { status: 'done' }, WEDNESDAY_AFTERNOON);
+  assert.deepEqual(titles(getWeek(db, MONDAY, WEDNESDAY_AFTERNOON).unfinished), ['Call the bank', 'Timed']);
+  updateEntry(db, missed.id, { day: '2026-11-26' }, WEDNESDAY_AFTERNOON);
+  const week = getWeek(db, MONDAY, WEDNESDAY_AFTERNOON);
+  assert.deepEqual(titles(week.unfinished), ['Timed']);
+  assert.deepEqual(titles(week.dayTasks), ['Call the bank']);
+});
+
+test('taking the day away sends a day task to the inbox, and giving one takes an inbox task out', () => {
+  const db = openDb(':memory:');
+  const task = createEntry(db, dayTask('Groceries', '2026-11-26'));
+  updateEntry(db, task.id, { day: null }, WEDNESDAY_AFTERNOON);
+  assert.deepEqual(titles(getWeek(db, MONDAY, WEDNESDAY_AFTERNOON).inbox), ['Groceries']);
+  updateEntry(db, task.id, { day: '2026-11-27' }, WEDNESDAY_AFTERNOON);
+  const week = getWeek(db, MONDAY, WEDNESDAY_AFTERNOON);
+  assert.deepEqual(week.inbox, []);
+  assert.deepEqual(titles(week.dayTasks), ['Groceries']);
+});
+
+test('a placed day task leaves its list, and the inbox button brings it back there', () => {
+  const db = openDb(':memory:');
+  const task = createEntry(db, dayTask('Groceries', '2026-11-26'));
+  updateEntry(db, task.id, { start: '2026-11-26T18:00' }, WEDNESDAY_AFTERNOON);
+  assert.deepEqual(getWeek(db, MONDAY, WEDNESDAY_AFTERNOON).dayTasks, []);
+  updateEntry(db, task.id, { start: null }, WEDNESDAY_AFTERNOON);
+  assert.deepEqual(titles(getWeek(db, MONDAY, WEDNESDAY_AFTERNOON).dayTasks), ['Groceries']);
+});
+
+test('a day must be a real date like 2026-11-25, or null', () => {
+  const db = openDb(':memory:');
+  for (const day of ['2026-11-31', '2026-13-01', '25/11/2026', '2026-11-25T09:00', 20261125]) {
+    assert.throws(() => createEntry(db, dayTask('Bad', day as string)), /day/);
+  }
+  const task = createEntry(db, dayTask('Good', '2026-11-25'));
+  assert.throws(() => updateEntry(db, task.id, { day: 'tomorrow' }, WEDNESDAY_AFTERNOON), /day/);
 });

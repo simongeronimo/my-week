@@ -35,6 +35,14 @@ test('the agent can add inbox tasks, marked as its own', async () => {
   assert.equal(((await res.json()) as Entry).created_by, 'agent');
 });
 
+test('the agent can add a task for a certain day, and a bad day gets a 400', async () => {
+  const { agent } = setup();
+  const res = await agent('POST', '/api/entries', { kind: 'task', title: 'Call the bank', duration: 15, day: '2099-01-05' });
+  assert.equal(res.status, 201);
+  assert.equal(((await res.json()) as Entry).day, '2099-01-05');
+  assert.equal((await agent('POST', '/api/entries', { kind: 'task', title: 'Bad', duration: 15, day: 'friday' })).status, 400);
+});
+
 test('the agent gets 403 for everything else, and nothing changes', async () => {
   const { me, agent } = setup();
   const mine = (await (await me('POST', '/api/entries', { kind: 'task', title: 'Mine', duration: 30 })).json()) as Entry;
