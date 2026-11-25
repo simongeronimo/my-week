@@ -50,3 +50,14 @@ test('bad requests get a JSON error with the right status', async () => {
   assert.equal((await send('DELETE', '/api/entries/abc')).status, 404);
   assert.equal((await send('GET', '/api/nope')).status, 404);
 });
+
+test('the day log comes back as Markdown, for today when no day is given', async () => {
+  const { send } = setup();
+  await send('POST', '/api/entries', { kind: 'task', title: 'Groceries', duration: 30, day: '2026-11-25' });
+  const res = await send('GET', '/api/log?day=2026-11-25');
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get('Content-Type')!, /^text\/markdown/);
+  assert.equal(await res.text(), '## Wed 25 Nov\n\n- [ ] Groceries\n');
+  assert.equal((await send('GET', '/api/log')).status, 200);
+  assert.equal((await send('GET', '/api/log?day=abc')).status, 400);
+});

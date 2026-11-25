@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { all, openDb } from './db.ts';
 import type { DB } from './db.ts';
-import { createEntry, createRoutine, deleteEntry, deleteRoutine, getWeek, updateEntry } from './week.ts';
+import { createEntry, createRoutine, dayLog, deleteEntry, deleteRoutine, getWeek, updateEntry } from './week.ts';
 import type { Entry, WeekView } from '../shared/types.ts';
 
 const MONDAY = '2026-11-23';
@@ -201,4 +201,31 @@ test('a day must be a real date like 2026-11-25, or null', () => {
   }
   const task = createEntry(db, dayTask('Good', '2026-11-25'));
   assert.throws(() => updateEntry(db, task.id, { day: 'tomorrow' }, WEDNESDAY_AFTERNOON), /day/);
+});
+
+test('the day log lists a day as bullet journal lines, the ones without a time first', () => {
+  const db = openDb(':memory:');
+  createRoutine(db, { kind: 'task', title: 'Skin care', days: 'MTWTFSS', at: null, duration: 15, carry: 0 }, LAST_FRIDAY);
+  getWeek(db, MONDAY, LAST_FRIDAY); // gives Wednesday its unplaced Skin care copy
+  const tick = (id: number) => updateEntry(db, id, { status: 'done' }, WEDNESDAY_AFTERNOON);
+  tick(createEntry(db, dayTask('Groceries', '2026-11-25')).id);
+  createEntry(db, dayTask('Pick up parcel', '2026-11-25'));
+  updateEntry(db, createEntry(db, { kind: 'task', title: 'Gym', start: '2026-11-25T07:00', duration: 60 }).id, { status: 'cancelled' }, WEDNESDAY_AFTERNOON);
+  tick(createEntry(db, { kind: 'task', title: 'Call the bank', start: '2026-11-25T09:00', duration: 30 }).id);
+  createEntry(db, { kind: 'event', title: 'Dinner', start: '2026-11-25T19:00', duration: 60 });
+  createEntry(db, { kind: 'task', title: 'Thursday', start: '2026-11-26T09:00', duration: 30 });
+  createEntry(db, dayTask('Thursday too', '2026-11-26'));
+  createEntry(db, { kind: 'task', title: 'Inbox', duration: 30 });
+  assert.equal(dayLog(db, '2026-11-25'), [
+    '## Wed 25 Nov',
+    '',
+    '- [ ] Skin care',
+    '- [x] Groceries',
+    '- [ ] Pick up parcel',
+    '- [-] 7:00 am Gym',
+    '- [x] 9:00 am Call the bank',
+    '- o 7:00 pm Dinner',
+    '',
+  ].join('\n'));
+  assert.throws(() => dayLog(db, '2026-11-31'), /day/);
 });

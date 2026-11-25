@@ -252,6 +252,7 @@ legend { width: 100%; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
 .any-time h2 { margin: 0 0 4px 62px; font-size: 12px; font-weight: 600; color: var(--muted); }
 .any-time ul { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
 .any-time .entry { height: 52px; grid-template-columns: 44px minmax(0, 1fr) auto; padding-left: 62px; } /* no time, so the boxes line up with the day list's */
+.copy-log { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; }
 .free-row { display: flex; align-items: center; padding-left: 106px; font-size: 12px; color: var(--muted); }
 .free-row.past { opacity: 0.55; }
 .now-row { display: flex; align-items: center; color: var(--accent); }

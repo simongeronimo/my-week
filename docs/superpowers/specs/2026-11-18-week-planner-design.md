@@ -108,6 +108,11 @@ All six ship together as 0.7.0.
 - **Back to inbox.** A placed day task sent back to the inbox returns to its day's list, like a habit copy.
 - **Data.** A day task is an entry with `kind = 'task'`, `start` empty, `day` set and `routine_id` empty. No migration is needed. `POST /api/entries` and `PATCH /api/entries/:id` accept `day`, as `YYYY-MM-DD` or null, and anything else gets a `400`. The inbox query already skips entries with a `day`. `GET /api/week` adds `dayTasks`: open, unplaced day tasks dated in the shown week, from today on. The `unfinished` query also returns open, unplaced day tasks dated before today. The agent may add day tasks, since they have no start.
 
+### Added on 25 November
+
+1. **Copy for Obsidian.** my-week stays a week planner, and the bullet journal (daily notes, collections, reflection) lives in Obsidian. The one link between them is a Copy for Obsidian button under the day on the Today page. It copies the day as Markdown to paste into a daily note: a `## Wed 25 Nov` heading, then one line per entry. A ticked task is `- [x]`, an open one `- [ ]`, a thrown away entry `- [-]` and an event `- o`. Things without a time come first, like on the Today page, then the rest in time order with the time in front. Open tasks stay `[ ]`, because deciding what moves happens at the review. The button copies instead of writing into the vault, so the container needs no access to it and nothing writes over a note that is open.
+2. **Data.** `GET /api/log?day=YYYY-MM-DD` returns that text as `text/markdown`, for today when `day` is left out, and a bad day gets a `400`. It lists entries that start on that day, and unplaced ones whose `day` is that day, in any status. The Today page fetches it along with the week, because an iPhone only copies straight from a tap, not after waiting on a request.
+
 ### Later list (left out on purpose)
 
 - All-day events, yearly repeats, and events that span several days

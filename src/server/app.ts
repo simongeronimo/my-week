@@ -5,7 +5,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { DB } from './db.ts';
-import { HttpError, createEntry, createRoutine, deleteEntry, deleteRoutine, getWeek, listRoutines, updateEntry } from './week.ts';
+import { HttpError, createEntry, createRoutine, dayLog, deleteEntry, deleteRoutine, getWeek, listRoutines, updateEntry } from './week.ts';
 import { toIcs } from './ics.ts';
 import { addDays, isMonday, localNow, mondayOf } from '../shared/time.ts';
 
@@ -76,6 +76,7 @@ export function createApp({ db, appToken, agentToken, feedToken, timeZone, distD
     if (!isMonday(monday)) throw new HttpError(400, 'monday must be a Monday date like 2026-11-23');
     return c.json(getWeek(db, monday, now()));
   });
+  app.get('/api/log', (c) => c.body(dayLog(db, c.req.query('day') ?? now().slice(0, 10)), 200, { 'Content-Type': 'text/markdown; charset=utf-8' }));
   app.post('/api/entries', async (c) => {
     const body = await jsonBody(c);
     const who = c.get('who');

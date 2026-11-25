@@ -31,11 +31,13 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     const data = (await res.json().catch(() => ({}))) as { error?: string };
     throw new Error(data.error ?? `Request failed with status ${res.status}`);
   }
-  return (res.status === 204 ? undefined : await res.json()) as T;
+  if (res.status === 204) return undefined as T;
+  return (res.headers.get('Content-Type')?.includes('json') ? await res.json() : await res.text()) as T;
 }
 
 export const api = {
   week: (monday: string) => request<WeekView>('GET', `/api/week?monday=${monday}`),
+  log: (day: string) => request<string>('GET', `/api/log?day=${day}`),
   createEntry: (entry: NewEntry) => request<Entry>('POST', '/api/entries', entry),
   updateEntry: (id: number, changes: EntryChanges) => request<Entry>('PATCH', `/api/entries/${id}`, changes),
   deleteEntry: (id: number) => request<void>('DELETE', `/api/entries/${id}`),

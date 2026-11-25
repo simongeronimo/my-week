@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties, HTMLAttributes } from 'react';
-import { PlusIcon, SquaresFourIcon, TrayIcon } from '@phosphor-icons/react';
+import { CopyIcon, PlusIcon, SquaresFourIcon, TrayIcon } from '@phosphor-icons/react';
 import type { Entry, EntryChanges, WeekView } from '../shared/types.ts';
 import { addDays, addMinutes, formatDate, formatDay, formatDuration, formatTime, mondayOf } from '../shared/time.ts';
 import { api } from './api.ts';
@@ -35,6 +35,8 @@ export function Today({ onAuthError }: { onAuthError: () => void }) {
   const [now, setNow] = useState(browserNow);
   const [openEntry, setOpenEntry] = useState<Entry | null>(null);
   const [adding, setAdding] = useState(false);
+  const [log, setLog] = useState(''); // fetched with the day, because iPhones only copy straight from a tap, not after waiting on a request
+  const [copied, setCopied] = useState(false);
   const [drag, setDrag] = useState<Drag | null>(null);
   const dragRef = useRef<Drag | null>(null); // the same drag, for touch handlers that run before React renders again
   const listRef = useRef<HTMLOListElement>(null);
@@ -50,7 +52,10 @@ export function Today({ onAuthError }: { onAuthError: () => void }) {
     if (today === monday) mondays.unshift(addDays(monday, -7)); // a Sunday-night entry can still be running on Monday
     if (today === addDays(monday, 6)) mondays.push(addDays(monday, 7)); // on Sundays the next entry usually lives in next week
     loadedDay.current = today;
-    return Promise.all(mondays.map((m) => api.week(m))).then(setWeeks, fail);
+    return Promise.all([Promise.all(mondays.map((m) => api.week(m))), api.log(today)]).then(([ws, text]) => {
+      setWeeks(ws);
+      setLog(text);
+    }, fail);
   }, [fail]);
 
   useReloadOnShow(load);
@@ -222,6 +227,20 @@ export function Today({ onAuthError }: { onAuthError: () => void }) {
       {weeks === null && <p className="hint">Loading the day.</p>}
       {weeks !== null && rows.length === 0 && <p className="hint">Nothing planned today.</p>}
       {next && next.start!.slice(0, 10) !== today && <p className="hint">Next: {formatDay(next.start!)} {formatTime(next.start!)}, {next.title}</p>}
+
+      {log.includes('\n- ') && !drag && (
+        <button
+          type="button"
+          className="btn copy-log"
+          onClick={() => navigator.clipboard.writeText(log).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          }, fail)}
+        >
+          <CopyIcon size={18} aria-hidden="true" />
+          {copied ? 'Copied' : 'Copy for Obsidian'}
+        </button>
+      )}
 
       {!drag && (
         <button type="button" className="fab" aria-label="Add a task" onClick={() => setAdding(true)}>

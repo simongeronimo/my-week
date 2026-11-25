@@ -1,6 +1,6 @@
 import { all, one, run, transaction } from './db.ts';
 import type { DB } from './db.ts';
-import { addDays, addMinutes, mondayOf } from '../shared/time.ts';
+import { addDays, addMinutes, formatDate, formatTime, mondayOf } from '../shared/time.ts';
 import type { Entry, Routine, WeekView } from '../shared/types.ts';
 
 export class HttpError extends Error {
@@ -149,6 +149,24 @@ function checkDay(row: Row): Row {
   const real = typeof day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(day) && !Number.isNaN(date.getTime()) && date.toISOString().startsWith(day);
   if (!real) throw new HttpError(400, 'Field day must be a date like 2026-11-25, or null');
   return row;
+}
+
+/**
+ * One day as bullet journal lines to paste into an Obsidian daily note, ticked and thrown away ones too.
+ * The day's things without a time come first, like on the Today page, then the rest in time order.
+ */
+export function dayLog(db: DB, day: string): string {
+  checkDay({ day });
+  const entries = all<Entry>(
+    db,
+    'SELECT * FROM entries WHERE (start >= ? AND start < ?) OR (start IS NULL AND day = ?) ORDER BY start IS NOT NULL, start, id',
+    [day, addDays(day, 1), day],
+  );
+  const lines = entries.map((e) => {
+    const box = e.status === 'cancelled' ? '[-]' : e.kind === 'event' ? 'o' : e.status === 'done' ? '[x]' : '[ ]';
+    return `- ${box} ${e.start ? `${formatTime(e.start)} ` : ''}${e.title}`;
+  });
+  return [`## ${formatDate(day)}`, '', ...lines, ''].join('\n');
 }
 
 export function createEntry(db: DB, body: unknown, createdBy: 'me' | 'agent' = 'me'): Entry {
