@@ -180,10 +180,16 @@ export function updateEntry(db: DB, id: number, body: unknown, now: string): Ent
   if (Object.keys(changes).length === 0) return old;
   // Rule 6: back to the inbox means "not done yet", so a ticked task reopens instead of vanishing.
   if (changes.start === null && old.kind === 'task' && !('status' in changes)) changes.status = 'open';
-  // Rule 5: moving an unfinished task whose time had already passed counts as a migration.
-  const moved = 'start' in changes && changes.start !== old.start;
-  const unfinished = old.kind === 'task' && old.status === 'open' && old.start !== null;
-  if (moved && unfinished && addMinutes(old.start!, old.duration) <= now) {
+  // Rule 5: an open task whose time, or whole day, had already passed counts a migration when it leaves that day,
+  // for another day or the inbox. A later time on the same day doesn't count.
+  const dayOf = (start: string | null, day: string | null) => start?.slice(0, 10) ?? day;
+  const fromDay = dayOf(old.start, old.day);
+  const toDay = dayOf(
+    'start' in changes ? (changes.start as string | null) : old.start,
+    'day' in changes ? (changes.day as string | null) : old.day,
+  );
+  const passed = old.start ? addMinutes(old.start, old.duration) <= now : old.day !== null && old.day < now.slice(0, 10);
+  if (old.kind === 'task' && old.status === 'open' && passed && toDay !== fromDay) {
     changes.migrations = old.migrations + 1;
   }
   const sets = Object.keys(changes).map((c) => `${c} = :${c}`).join(', ');

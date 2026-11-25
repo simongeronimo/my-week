@@ -21,6 +21,24 @@ test('planning ahead is not a migration', () => {
   assert.equal(updateEntry(db, task.id, { duration: 60 }, '2026-11-28T09:00').migrations, 0); // resized, same start
 });
 
+test('moving a task to a later time on the same day is not a migration', () => {
+  const db = openDb(':memory:');
+  const task = createEntry(db, { kind: 'task', title: 'Call the bank', start: '2026-11-25T09:00', duration: 30 });
+  assert.equal(updateEntry(db, task.id, { start: '2026-11-25T18:00' }, NOW).migrations, 0);
+  assert.equal(updateEntry(db, task.id, { start: '2026-11-26T09:00' }, '2026-11-25T20:00').migrations, 1); // 6 pm passed, and it leaves the day
+});
+
+test('a missed day task moved to another day counts, and a placed one sent back to its day does not', () => {
+  const db = openDb(':memory:');
+  const missed = createEntry(db, { kind: 'task', title: 'Pick up parcel', duration: 15, day: '2026-11-24' });
+  assert.equal(updateEntry(db, missed.id, { start: '2026-11-25T18:00' }, NOW).migrations, 1); // Tuesday's, placed on Wednesday
+  const other = createEntry(db, { kind: 'task', title: 'Groceries', duration: 30, day: '2026-11-24' });
+  assert.equal(updateEntry(db, other.id, { day: '2026-11-26' }, NOW).migrations, 1);
+  assert.equal(updateEntry(db, other.id, { day: null }, '2026-11-27T09:00').migrations, 2); // Thursday's, sent to the inbox on Friday
+  const placed = createEntry(db, { kind: 'task', title: 'Post office', start: '2026-11-25T09:00', duration: 30, day: '2026-11-25' });
+  assert.equal(updateEntry(db, placed.id, { start: null }, NOW).migrations, 0); // back to Wednesday's list
+});
+
 test('moving a ticked task is not a migration, even after its time passed', () => {
   const db = openDb(':memory:');
   const task = createEntry(db, { kind: 'task', title: 'Groceries', start: '2026-11-24T17:45', duration: 45 });

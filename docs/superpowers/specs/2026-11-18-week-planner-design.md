@@ -140,7 +140,7 @@ All six ship together as 0.7.0.
 | Status | `open`, `done`, or `cancelled` | •, ×, struck out |
 | Inbox | Open tasks with no start | |
 | Overdue | Open tasks whose end has passed. The API calls the list `unfinished`. | |
-| Migration | Moving a task whose time has passed. The block shows the count, like `>2`. | > |
+| Migration | Moving a task whose time has passed to another day or the inbox. The block shows the count, like `>2`. | > |
 | Routine | A pattern (kind, title, days, time, duration) that the server copies into each week | |
 | Routine copy | An ordinary entry created from a routine, with `routine_id` set | |
 | Filled week | A week whose routine copies exist, recorded in `filled_weeks` | |
@@ -213,7 +213,7 @@ ORDER BY start;
 2. **Creating a routine.** The server inserts the routine, then adds its copies to every filled week, but only for days from now onward.
 3. **Deleting a routine.** The server deletes the routine's open copies that start after now. Past copies stay, and `ON DELETE SET NULL` clears their `routine_id`.
 4. **Editing a routine.** Editing means deleting the routine and creating it again, so it follows rules 2 and 3.
-5. **Migration.** When a `PATCH` changes the `start` of an open (unticked) task (to a new time, or to empty for "back to inbox"), and that task's old end had already passed, the server adds 1 to `migrations`. The server applies the rule, so the desktop, the phone, and the agent all count the same way.
+5. **Migration.** When a `PATCH` moves an open (unticked) task off its day, to another day or to the inbox, and that task's old end had already passed, the server adds 1 to `migrations`. A later time on the same day doesn't count. For a day task without a time, "passed" means its day is before today, and its day is the day it leaves. A placed day task or habit copy sent back to its own day's list stays on that day, so it doesn't count either. The server applies the rule, so the desktop, the phone, and the agent all count the same way.
 6. **Back to inbox.** This sets `start` to empty and keeps `duration`. A ticked task also goes back to `open`, because otherwise it would match no list and vanish. Only tasks can do it. For an event, the `CHECK` constraint rejects the change with a `400`.
 7. **Overdue.** Overdue isn't stored. A task is overdue when it shows up in the `unfinished` query.
 
@@ -489,7 +489,7 @@ networks:
 Automated tests run with `node --test` against an in-memory database (`:memory:`). Each file covers one rule:
 
 1. `week.test.ts` checks filling a week. Routines get copied onto the right days. A deleted copy stays deleted. Creating and deleting a routine only touches copies from now onward.
-2. `migration.test.ts` checks that moving a task whose time has passed adds 1, and that moving a future task adds nothing.
+2. `migration.test.ts` checks that moving a task whose time has passed to another day adds 1, and that moving a future task, or a task to a later time on the same day, adds nothing.
 3. `auth.test.ts` checks that the agent token can read and add inbox tasks, and gets a `403` for everything else. It also checks that a wrong token gets a `401`.
 4. `ics.test.ts` checks one feed with an escaped comma, a long title with a non-ASCII character that gets folded, and CRLF line endings.
 
